@@ -1,0 +1,24 @@
+services:
+  baret-tespit:
+    build: .
+    image: baret-tespit:latest
+    container_name: baret-tespit
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./models:/app/models
+      - ./ihlaller.db:/app/ihlaller.db
+      - ./ihlaller:/app/ihlaller
+      - ./test_videolari:/app/test_videolari
+    # NVIDIA GPU kullanmak icin: hedef PC'de NVIDIA surucu + Docker Desktop
+    # "Use NVIDIA GPU" destegi (Ayarlar > Resources > WSL Integration/GPU) kurulu olmali.
+    # GPU yoksa/gerek yoksa bu blogu tamamen silebilirsin, imaj CPU'da da calisir (yavas).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

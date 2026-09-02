@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Baret Tespit Sistemi - Kullanım Kılavuzu</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#1a1f26;background:#fff;
+       max-width:800px;margin:0 auto;padding:28px 32px;line-height:1.5}
+  h1{font-size:22px;margin:0 0 3px;color:#0d1117}
+  .alt-baslik{color:#57606a;font-size:13px;margin-bottom:22px}
+  h2{font-size:15px;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid #e1e4e8;
+     display:flex;align-items:center;gap:8px}
+  .adim{display:flex;gap:12px;margin:10px 0;align-items:flex-start}
+  .adim .no{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#4493f8;
+       color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;
+       justify-content:center;margin-top:1px}
+  .adim .metin{font-size:13.5px}
+  .adim .metin b{color:#0d1117}
+  .kutu{background:#f6f8fa;border:1px solid #e1e4e8;border-radius:8px;padding:14px 16px;margin:12px 0}
+  .kutu.uyari{background:#fff8e6;border-color:#f0d68a}
+  .kutu.ipucu{background:#eef7ff;border-color:#bcdcff}
+  .rozet{display:inline-block;padding:2px 9px;border-radius:11px;font-size:11.5px;
+         font-weight:700;color:#fff}
+  .r-yesil{background:#3fb950} .r-kirmizi{background:#e5484d} .r-mavi{background:#4493f8}
+  .kutu-satir{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0}
+  .mini-kart{flex:1;min-width:210px;background:#f6f8fa;border:1px solid #e1e4e8;
+       border-radius:8px;padding:12px 14px}
+  .mini-kart .baslik{font-size:13px;font-weight:700;margin-bottom:4px;display:flex;
+       align-items:center;gap:6px}
+  .mini-kart p{font-size:12.5px;color:#3d444d;margin:0}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0}
+  td,th{border:1px solid #e1e4e8;padding:6px 10px;text-align:left}
+  th{background:#f6f8fa}
+  kbd{background:#f0f2f4;border:1px solid #d0d7de;border-radius:4px;padding:1px 6px;
+      font-family:monospace;font-size:11.5px}
+  .son-not{margin-top:26px;padding-top:14px;border-top:1px solid #e1e4e8;
+       font-size:11.5px;color:#57606a}
+  @media print{ body{padding:0} }
+</style>
+</head>
+<body>
+
+<h1>🪖 Baret Tespit Sistemi — Kullanım Kılavuzu</h1>
+<div class="alt-baslik">Panel ekranına bakan herkes için — teknik bilgi gerekmez</div>
+
+<h2>📋 Panel ne yapar</h2>
+<p style="font-size:13.5px">Kameralardaki görüntüyü sürekli izler, baretsiz kişileri otomatik tespit eder ve
+"İnceleme Bekleyen" listesine ekler. Senin görevin bu kayıtlara bakıp gerçek bir ihlal mi yoksa
+sistemin yanlış alarmı mı olduğuna karar vermek.</p>
+
+<h2>✅ Bir kaydı onaylamak veya reddetmek</h2>
+<div class="adim"><span class="no">1</span><span class="metin">Ekranın altındaki
+  <b>"İnceleme Bekleyen"</b> sekmesindeki listeye bak. En yeni kayıt en üstte.</span></div>
+<div class="adim"><span class="no">2</span><span class="metin">Fotoğrafa tıklayarak büyütüp
+  net bir şekilde incele — kişi gerçekten baretsiz mi?</span></div>
+<div class="adim"><span class="no">3</span><span class="metin">
+  <span class="rozet r-yesil">Onayla</span> — gerçekten baretsiz bir ihlal ise.
+  &nbsp;&nbsp;<span class="rozet r-kirmizi">Reddet</span> — sistem yanlış alarm verdiyse
+  (örn. lamba, ekipman, gölge).</span></div>
+<div class="kutu ipucu">💡 Klavye kısayolları: kayıt açıkken <kbd>A</kbd> = Onayla,
+  <kbd>R</kbd> = Reddet. Fare kullanmadan hızlıca ilerleyebilirsin.</div>
+<div class="kutu uyari">⚠️ Yanlış tuşa bastıysan endişelenme — <b>"Onaylanan"</b> veya
+  <b>"Reddedilen"</b> sekmesinde o kaydı bulup <b>"Geri al"</b> ile tekrar bekleyen kuyruğuna
+  alabilirsin.</div>
+
+<h2>🎯 Hassasiyet kaydırıcısı ne işe yarar</h2>
+<p style="font-size:13.5px">Her kameranın büyük görüntüsünün sağ üstünde bulunur. Sistemin o
+kamerada ne kadar "temkinli" ya da "cesur" tespit yapacağını ayarlar:</p>
+<div class="kutu-satir">
+  <div class="mini-kart"><div class="baslik">⬅️ Düşük Hassasiyet</div>
+    <p>Sadece çok emin olduğu kişileri gösterir. Yanlış alarm azalır ama uzaktaki/belirsiz
+    biri kaçabilir.</p></div>
+  <div class="mini-kart"><div class="baslik">➡️ Yüksek Hassasiyet</div>
+    <p>Zayıf/uzak tespitleri de gösterir. Kimseyi kaçırma riski azalır ama yanlış alarm
+    sayısı artabilir.</p></div>
+</div>
+<p style="font-size:13.5px">Kamera açıldığında kaydırıcı zaten o kamera için önerilen konumda
+başlar. Denemek istersen kaydırıp bırak yeterli — anında etkili olur. İşe yaramadıysa sağdaki
+<b>↺</b> ikonuna basarak önerilen ayara geri dönebilirsin.</p>
+
+<h2>🎯📷 İhlal / Kamera görünümü</h2>
+<p style="font-size:13.5px">Kamera adının yanındaki iki düğme, büyük görüntünün nasıl
+gösterileceğini seçer:</p>
+<table>
+  <tr><th>🎯 İhlal</th><td>Tespit kutuları ve etiketleriyle işaretlenmiş görüntü (varsayılan)</td></tr>
+  <tr><th>📷 Kamera</th><td>Hiçbir işaret olmadan kameranın temiz görüntüsü</td></tr>
+</table>
+<p style="font-size:12.5px;color:#57606a">Not: hangi modu seçersen seç, tespit arka planda
+çalışmaya devam eder — sadece ekranda ne gördüğün değişir.</p>
+
+<h2>🖥️ Diğer üst çubuk düğmeleri</h2>
+<table>
+  <tr><th style="width:170px">🔔 Bildirimler</th>
+      <td>Açarsan yeni bir ihlalde ekranın üstünde kısa bir uyarı belirir (aynı kişi için 15
+      dakikada bir defa, spam olmasın diye).</td></tr>
+  <tr><th>🛠 Teknik Görünüm</th>
+      <td>Normalde kapalı kalmalı — sadece sistemi kuran kişi bir sorunu incelerken açar.</td></tr>
+  <tr><th>⛶ Tam Ekran</th>
+      <td>Paneli tüm ekrana yayar, tarayıcı çubuklarını gizler. Sürekli açık duran bir ekran
+      için idealdir.</td></tr>
+  <tr><th>🔗 Kamera / Link</th>
+      <td>Yeni kamera eklemek veya mevcut bir kameranın adresini/adını değiştirmek için.</td></tr>
+  <tr><th>● Canlı</th>
+      <td>Saatin yanındaki yeşil nokta panelin çalıştığını gösterir. Kırmızıya dönüp
+      "Bağlantı sorunu" yazarsa bilgisayarı/programı kontrol etmek gerekir.</td></tr>
+</table>
+
+<h2>🗑️ "Tümünü Temizle" hakkında</h2>
+<div class="kutu uyari">⚠️ İnceleme kuyruğunun sağ üstündeki bu düğme, bekleyen + onaylanan +
+reddedilen <b>bütün kayıtları kalıcı olarak siler</b>. Sadece test döneminden kalan verileri
+temizlemek için kullanıldı — normal kullanımda dokunmana gerek yok.</div>
+
+<div class="son-not">Bir sorunla karşılaşırsan veya panelde beklenmedik bir şey görürsen,
+sistemi kuran kişiyle iletişime geç.</div>
+
+</body>
+</html>

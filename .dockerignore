@@ -1,0 +1,33 @@
+# Kod dısı her sey imaja GIRMESIN - hem imaj kucuk kalsin (video
+# dosyalari tek basina birkac GB), hem de bunlar "docker run -v" ile
+# disaridan baglanacagi icin (bkz. docker-compose.yml) imaja gomulu
+# olmalari zaten yanlis olur - degistiginde imaji yeniden derlemek
+# gerekirdi.
+
+# Test videolari - GERCEK KAMERAYA gecince zaten gerek kalmayacak
+video_test*.mp4
+
+# Model agirliklari - config.yaml + models/ klasoru volume olarak baglanir
+models/
+yolo11n.pt
+
+# Ayar/veri - bunlar "durum"dur, imajin bir parcasi degil
+config.yaml
+ihlaller.db
+ihlaller/
+
+# Egitim ile ilgili buyuk klasorler - imaja gerek yok
+dataset/
+dataset_hazir/
+dataset_ince_hazir/
+dataset_ince_hazir_kopya/
+runs/
+t7_egitim_eklentisi/
+t7_egitim_eklentisi_v2/
+
+# Gelistirme/gecici dosyalar
+__pycache__/
+*.pyc
+.git/
+.gitignore
+*.zip

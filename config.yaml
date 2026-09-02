@@ -1,0 +1,94 @@
+model:
+  mode: head_first
+  head_model: models/best.pt
+  head_imgsz:
+  - 1280
+  - 1920
+  head_merge_px: 12
+  head_conf: 0.15
+  min_head_px: 5
+  use_person_boxes: false
+  person_gate: true
+  person_gate_every: 5
+  coco_model: models/yolo11m.pt
+  person_conf: 0.1
+  person_imgsz: 1920
+  sahi_enabled: false
+  sahi_slice: 640
+  sahi_overlap: 0.2
+  sahi_postprocess: NMS
+  sahi_postprocess_metric: IOU
+  sahi_postprocess_threshold: 0.45
+cameras:
+- id: KAM-01
+  name: Hangar Ana
+  url: test_videolari/video_test.mp4
+  enabled: true
+  mesafe: normal
+- id: KAM-02
+  name: Hangar Yol Tarafi
+  url: test_videolari/video_test6.mp4
+  enabled: true
+  mesafe: normal
+- id: KAM-03
+  name: Kamera 3
+  url: test_videolari/video_test7.mp4
+  enabled: true
+  mesafe: uzak
+- id: KAM-04
+  name: Kamera 4
+  url: ''
+  enabled: false
+  mesafe: normal
+detection:
+  target_fps: 2
+  tracking_enabled: true
+  auto_calibrate: true
+  cal_reach_head_mult: 3.5
+  cal_reach_floor_px: 12
+  cal_reach_max_nn_ratio: 0.4
+  cal_min_samples: 60
+  track_reach_px: 45
+  track_iou: 0.25
+  track_max_age: 10
+  body_w_mult: 2.6
+  body_h_mult: 6.0
+  inference_lock: true
+  head_zone_ratio: 0.55
+  match_pad_ratio: 0.5
+  require_person_match: true
+  min_person_h: 14
+  min_person_w: 6
+  static_suppress: true
+  static_min_seconds: 600
+  static_min_seconds_unsupported: 120
+  static_support_ratio: 0.15
+  static_min_occupancy: 0.97
+  static_max_dev_heads: 0.18
+  static_max_dev_floor_px: 1.0
+  static_forget_seconds: 1800
+  conflict_resolve: true
+  conflict_body_iou: 0.45
+  conflict_head_mult: 1.5
+  conflict_person_box: true
+  helmet_memory: true
+  helmet_votes_needed: 2
+  helmet_revoke_frames: 4
+  log_helmet_revoke: true
+  confirm_frames: 3
+  violation_min_conf: 0.3
+  cooldown_seconds: 90
+  state_ttl_seconds: 300
+  show_unmatched_person: true
+  show_unknown: true
+  show_debug: true
+storage:
+  snapshots_dir: ihlaller
+  database: ihlaller.db
+  retention_days: 90
+  snapshot_mode: both
+web:
+  host: 0.0.0.0
+  port: 8000
+  live_view: true
+  stream_quality: 70

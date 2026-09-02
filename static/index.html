@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baret Tespit Sistemi</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#1a2129; --panel2:#222c36; --panel3:#2a3540;
+    --line:#2d3843; --text:#e6edf3; --dim:#8b98a5;
+    --red:#e5484d; --green:#3fb950; --amber:#d29922; --blue:#4493f8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
+       background:var(--bg);color:var(--text);font-size:14px;overflow:hidden}
+
+  header{background:var(--panel);border-bottom:1px solid var(--line);
+    padding:8px 20px;display:flex;align-items:center;gap:16px;height:40px}
+  header h1{font-size:15px;font-weight:600;letter-spacing:.2px}
+  .badge{background:var(--amber);color:#111;padding:3px 10px;border-radius:11px;
+    font-size:12px;font-weight:700}
+  .spacer{flex:1}
+  .ipucu{color:var(--dim);font-size:11.5px}
+  .clock{color:var(--dim);font-variant-numeric:tabular-nums;
+    font-size:13px;min-width:66px;text-align:right}
+  .ekle-btn.acik{color:var(--blue);border-color:rgba(88,166,255,.35);background:rgba(88,166,255,.1)}
+  .canli-durum{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim)}
+  .canli-durum .cd-nokta{width:7px;height:7px;border-radius:50%;background:var(--green);
+       box-shadow:0 0 0 0 rgba(63,185,80,.6);animation:nabiz 2s infinite}
+  .canli-durum.sorunlu .cd-nokta{background:var(--red);animation:none}
+  .canli-durum.sorunlu .cd-yazi{color:var(--red)}
+  @keyframes nabiz{
+    0%{box-shadow:0 0 0 0 rgba(63,185,80,.55)}
+    70%{box-shadow:0 0 0 5px rgba(63,185,80,0)}
+    100%{box-shadow:0 0 0 0 rgba(63,185,80,0)}
+  }
+
+  .sayfa{height:calc(100vh - 40px);display:grid;
+         grid-template-rows:auto minmax(0,78fr) minmax(0,22fr);
+         gap:8px;padding:8px}
+
+  /* ---- ust satir: ozet kutulari ---- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);
+        border-radius:7px;padding:8px 14px;display:flex;align-items:center;gap:11px;
+        transition:border-color .15s}
+  .stat .ikon{font-size:20px;flex-shrink:0;opacity:.9}
+  .stat .n{font-size:22px;font-weight:700;line-height:1.15;
+           font-variant-numeric:tabular-nums}
+  .stat .l{color:var(--dim);font-size:10px;margin-top:1px;
+           text-transform:uppercase;letter-spacing:.4px}
+  .stat.amber{border-left-color:var(--amber)}
+  .stat.green{border-left-color:var(--green)}
+  .stat.red .n{color:var(--red)} .stat.amber .n{color:var(--amber)}
+  .stat.green .n{color:var(--green)}
+
+  /* ---- orta satir: kameralar ---- */
+  .orta{display:grid;grid-template-columns:150px 1fr;gap:8px;min-height:0}
+  #secici{display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:0}
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+       overflow:hidden;cursor:pointer;transition:border-color .15s;position:relative}
+  .sec:hover{border-color:#3d4b59}
+  .sec.aktif{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}
+  .sec.alarm{border-color:var(--red);animation:alarm 1.1s ease-in-out infinite}
+  .sec-ekle{border:1.5px dashed var(--line);border-radius:8px;padding:14px 8px;
+       display:flex;flex-direction:column;align-items:center;justify-content:center;
+       gap:3px;cursor:pointer;color:var(--dim);font-size:11.5px;transition:.15s}
+  .sec-ekle:hover{border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.06)}
+  .sec-ekle .se-artı{font-size:17px;line-height:1}
+  @keyframes alarm{0%,100%{box-shadow:0 0 0 1px var(--red)}
+                   50%{box-shadow:0 0 0 3px rgba(229,72,77,.5)}}
+  .sec img{width:100%;display:block;background:#000;aspect-ratio:16/9;object-fit:cover}
+  .sec .yok{aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;
+            background:#000;color:var(--dim);font-size:11px;text-align:center;padding:5px}
+  .sec-alt{padding:6px 8px;display:flex;align-items:center;gap:6px;font-size:11.5px}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+  .dot.off{background:var(--red)}
+  .sec-ad{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tus{background:var(--panel2);color:var(--dim);border-radius:3px;
+       padding:0 5px;font-size:10px}
+  .sec-duzenle{flex-shrink:0;width:23px;height:23px;border-radius:5px;
+       display:flex;align-items:center;justify-content:center;
+       background:none;color:var(--dim);border:none;cursor:pointer;
+       font-size:13px;padding:0}
+  .sec-duzenle:hover{background:var(--panel3);color:var(--text)}
+  .ekle-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+       border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;
+       cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px}
+  .ekle-btn:hover{background:var(--panel3);border-color:#3d4b59}
+  .temizle-btn{background:none;color:var(--dim);border:1px solid var(--line);
+       border-radius:6px;padding:4px 10px;font-size:11.5px;font-weight:600;
+       cursor:pointer;font-family:inherit;align-self:center}
+  .temizle-btn:hover{background:rgba(229,72,77,.14);border-color:var(--red);color:var(--red)}
+  .gorunum-secici{display:flex;gap:2px;background:var(--panel2);border:1px solid var(--line);
+       border-radius:6px;padding:2px;margin-left:12px}
+  .gs-buton{background:none;border:none;border-radius:4px;padding:4px 9px;
+       font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;font-family:inherit}
+  .gs-buton:hover{color:var(--text)}
+  .gs-buton.aktif{background:var(--panel3);color:var(--text)}
+
+  .hassasiyet-cubuk{display:flex;align-items:center;gap:6px;margin-right:14px}
+  .hassasiyet-cubuk .h-ikon{font-size:12px}
+  .hassasiyet-cubuk .h-etiket{font-size:11px;color:var(--dim);white-space:nowrap}
+  .hassasiyet-cubuk .h-deger{font-size:11px;color:var(--text);font-weight:600;
+       min-width:30px;text-align:right}
+  .hassasiyet-cubuk .h-sifirla{flex-shrink:0;background:none;color:var(--dim);
+       border:none;border-radius:4px;width:18px;height:18px;font-size:12px;
+       cursor:pointer;font-family:inherit;padding:0;line-height:1}
+  .hassasiyet-cubuk .h-sifirla:hover{background:var(--panel3);color:var(--text)}
+
+  .hassasiyet-cubuk input[type=range]{-webkit-appearance:none;appearance:none;
+       width:100px;height:4px;border-radius:3px;background:var(--panel3);
+       outline:none;cursor:pointer;margin:0}
+  .hassasiyet-cubuk input[type=range]::-webkit-slider-runnable-track{height:4px;
+       border-radius:3px;background:transparent}
+  .hassasiyet-cubuk input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;
+       appearance:none;width:12px;height:12px;border-radius:50%;background:var(--blue);
+       border:2px solid #0d1117;margin-top:-4px;
+       box-shadow:0 0 0 1px rgba(88,166,255,.5)}
+  .hassasiyet-cubuk input[type=range]::-moz-range-track{height:4px;border-radius:3px;
+       background:var(--panel3)}
+  .hassasiyet-cubuk input[type=range]::-moz-range-thumb{width:10px;height:10px;
+       border-radius:50%;background:var(--blue);border:2px solid #0d1117;
+       box-shadow:0 0 0 1px rgba(88,166,255,.5)}
+
+  .kart{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+        overflow:hidden;display:flex;flex-direction:column;min-height:0}
+  .kart-b{padding:6px 13px;border-bottom:1px solid var(--line);
+          display:flex;align-items:center;gap:9px;font-weight:600;font-size:12.5px}
+  #buyukKutu{flex:1;min-height:0;background:#000;display:flex;
+             align-items:center;justify-content:center}
+  #buyuk{max-width:100%;max-height:100%;object-fit:contain;display:none}
+  #buyukYok{color:var(--dim);font-size:13px;padding:24px;text-align:center}
+
+  /* ---- alt satir: INCELEME KUYRUGU (asil calisma alani) ---- */
+  #kuyrukKart{display:flex;flex-direction:column;min-height:0}
+  .sekmeler{display:flex;gap:2px;padding:0 13px;border-bottom:1px solid var(--line);
+            align-items:stretch;background:var(--panel)}
+  .sekme{background:none;border:none;border-bottom:2px solid transparent;
+         color:var(--dim);padding:11px 15px;cursor:pointer;font-size:13px;
+         font-family:inherit;font-weight:600;display:flex;align-items:center;gap:7px}
+  .sekme:hover{color:var(--text)}
+  .sekme.aktif{color:var(--text);border-bottom-color:var(--blue)}
+  .sekme .say{background:var(--panel3);color:var(--dim);border-radius:9px;
+              padding:1px 7px;font-size:11px;font-variant-numeric:tabular-nums}
+  .sekme.aktif .say{background:var(--blue);color:#fff}
+  .sekme.bekleyen.aktif .say{background:var(--amber);color:#111}
+
+  /* ---- kuyruk: dosya listesi stili (kompakt satirlar) ---- */
+  #kuyruk{flex:1;min-height:0;overflow-y:auto;padding:8px 13px;
+          display:flex;flex-direction:column;gap:5px}
+  .ihlal{background:var(--panel);border:1px solid var(--line);border-radius:7px;
+         display:flex;align-items:center;gap:14px;padding:8px 12px 8px 8px;
+         transition:border-color .15s}
+  .ihlal:hover{border-color:#3d4b59}
+  .ihlal.yeni{animation:girdi .5s ease-out}
+  @keyframes girdi{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+  .ihlal .foto{position:relative;background:#000;cursor:zoom-in;
+               width:64px;height:64px;border-radius:6px;overflow:hidden;flex-shrink:0;
+               border:1px solid var(--line);transition:border-color .12s}
+  .ihlal .foto:hover{border-color:var(--blue)}
+  .ihlal .foto img{width:100%;height:100%;object-fit:cover;display:block}
+  .ihlal .no{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.78);
+             color:#fff;padding:1px 3px;font-size:10px;font-weight:700;text-align:center;
+             font-variant-numeric:tabular-nums}
+  .ihlal-bilgi{flex:1;min-width:0;display:flex;align-items:center;
+               gap:20px;font-size:12.5px}
+  .ihlal-bilgi .zaman{font-variant-numeric:tabular-nums;font-weight:600;
+                      min-width:60px;flex-shrink:0}
+  .ihlal-bilgi .kam{color:var(--dim);min-width:160px;flex-shrink:0;
+                    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                    cursor:pointer}
+  .ihlal-bilgi .kam:hover{color:var(--blue);text-decoration:underline}
+  .ihlal-bilgi .guv{color:var(--dim);font-size:11px;white-space:nowrap}
+  .ihlal-islem{display:flex;gap:7px;flex-shrink:0}
+  .ihlal-islem button{border-radius:6px;padding:9px 16px;
+    font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;
+    background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    transition:.12s}
+  .ihlal-islem button.onay{color:var(--green);border-color:rgba(63,185,80,.35)}
+  .ihlal-islem button.onay:hover{background:rgba(63,185,80,.18)}
+  .ihlal-islem button.ret{color:var(--red);border-color:rgba(229,72,77,.35)}
+  .ihlal-islem button.ret:hover{background:rgba(229,72,77,.18)}
+  .ihlal-islem button.geri{color:var(--dim)}
+  .ihlal-islem button.geri:hover{background:var(--panel3);color:var(--text)}
+  .rozet{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;
+         font-weight:600;flex-shrink:0}
+  .rozet.onayli{background:rgba(63,185,80,.18);color:var(--green)}
+  .rozet.red{background:rgba(139,152,165,.18);color:var(--dim)}
+  .bos{width:100%;padding:52px 20px;text-align:center;color:var(--dim);
+       font-size:13px}
+  .bos b{display:block;font-size:15px;color:var(--text);margin-bottom:6px}
+
+  /* ---- inceleme penceresi ---- */
+  #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);
+         z-index:200;align-items:center;justify-content:center;padding:22px}
+  #modal.show{display:flex}
+  .m-kutu{max-width:1220px;width:100%;max-height:94vh;background:var(--panel);
+          border-radius:10px;border:1px solid var(--line);display:flex;
+          flex-direction:column;overflow:hidden}
+  .m-bas{padding:12px 18px;border-bottom:1px solid var(--line);
+         display:flex;align-items:center;gap:12px}
+  .m-bas .kno{font-size:17px;font-weight:700}
+  .m-gorseller{display:grid;grid-template-columns:1fr 1.5fr;gap:1px;
+               background:var(--line);min-height:0;flex:1}
+  .m-g{background:#000;display:flex;flex-direction:column;min-height:0}
+  .m-g .bas{padding:6px 12px;background:var(--panel);font-size:11px;
+            color:var(--dim);font-weight:600;letter-spacing:.3px}
+  .m-g .sar{flex:1;min-height:0;display:flex;align-items:center;
+            justify-content:center;overflow:hidden}
+  .m-g img{max-width:100%;max-height:100%;object-fit:contain}
+  .m-g img.yok{display:none}
+  .m-g .sar{position:relative}
+  .m-g .sar .yok-mesaj{color:var(--dim);font-size:12.5px;text-align:center;padding:20px}
+  .foto-yok{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+            background:#1c242c;color:var(--dim);font-size:11px;text-align:center}
+  .m-alt{padding:13px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+         border-top:1px solid var(--line)}
+  .m-meta{flex:1;min-width:210px;color:var(--dim);font-size:12px;line-height:1.7}
+  .m-meta b{color:var(--text)}
+  button{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    padding:9px 17px;border-radius:6px;cursor:pointer;font-size:13px;
+    font-family:inherit;font-weight:600;transition:.12s}
+  button:hover{background:var(--panel3)}
+  button.onay{background:rgba(63,185,80,.16);border-color:var(--green);color:var(--green)}
+  button.onay:hover{background:rgba(63,185,80,.3)}
+  button.ret{background:rgba(229,72,77,.16);border-color:var(--red);color:var(--red)}
+  button.ret:hover{background:rgba(229,72,77,.3)}
+  button.sade{font-weight:400}
+  kbd{background:var(--panel3);border:1px solid var(--line);border-radius:3px;
+      padding:0 5px;font-size:10.5px;font-family:inherit;color:var(--dim)}
+
+  /* ---- kamera ekle/duzenle penceresi ---- */
+  #kameraModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);
+         z-index:250;align-items:center;justify-content:center;padding:22px}
+  #kameraModal.show{display:flex}
+  .k-kutu{max-width:420px;width:100%;background:var(--panel);
+          border-radius:10px;border:1px solid var(--line);overflow:hidden}
+  .k-bas{padding:12px 18px;border-bottom:1px solid var(--line);
+         display:flex;align-items:center;gap:12px;font-weight:700;font-size:15px}
+  .k-govde{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+  .k-alan label{display:block;font-size:11.5px;color:var(--dim);
+       text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
+  .k-alan input{width:100%;background:var(--bg);border:1px solid var(--line);
+       color:var(--text);border-radius:6px;padding:9px 11px;font-size:13px;
+       font-family:inherit}
+  .k-alan input:focus{outline:none;border-color:var(--blue)}
+  .k-ipucu{color:var(--dim);font-size:11px;line-height:1.5}
+  .k-hata{color:var(--red);font-size:12px;display:none}
+  .k-alt{padding:13px 18px;display:flex;align-items:center;gap:10px;
+         border-top:1px solid var(--line)}
+
+  /* ---- yeni ihlal bildirimi ----
+     BILEREK "position:fixed" DEGIL: sabit/hesaplanan bir konum, farkli
+     ekran/yazi tipi/tam ekran durumunda ust cubugun UZERINE binebiliyordu.
+     Bunun yerine normal sayfa akisinda, ust cubugun HEMEN ALTINDA, kapali
+     halde yukseklik 0 - asla baska bir seyin ustune binemez. */
+  #ihlalBanner{max-height:0;overflow:hidden;transition:max-height .22s ease}
+  #ihlalBanner.show{max-height:56px}
+  #ihlalBanner .ic{background:rgba(229,72,77,.12);border-bottom:1px solid var(--red);
+    padding:10px 20px;display:flex;align-items:center;gap:13px;
+    font-size:13px;cursor:pointer}
+  #ihlalBanner .ikon{font-size:16px;flex-shrink:0}
+  #ihlalBanner .metin{flex:1;min-width:0}
+  #ihlalBanner .metin b{color:var(--red);font-weight:600}
+  #ihlalBanner .metin span{color:var(--dim);margin-left:8px}
+  #ihlalBanner .kapat{flex-shrink:0;background:none;border:none;color:var(--dim);
+    font-size:16px;padding:2px 8px;cursor:pointer}
+  #ihlalBanner .kapat:hover{color:var(--text)}
+  .bildirim-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:6px;padding:6px 10px;font-size:12.5px;font-weight:600;
+    cursor:pointer;font-family:inherit}
+  .bildirim-btn:hover{background:var(--panel3)}
+  .bildirim-btn.acik{color:var(--green);border-color:rgba(63,185,80,.35)}
+
+  /* ---- geri alma bildirimi ---- */
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);
+    background:var(--panel3);border:1px solid var(--line);border-radius:8px;
+    padding:11px 15px;display:flex;align-items:center;gap:13px;z-index:300;
+    box-shadow:0 8px 26px rgba(0,0,0,.5);transition:transform .22s;font-size:13px}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast button{padding:5px 12px;font-size:12px}
+
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#333f4b;border-radius:5px}
+  ::-webkit-scrollbar-thumb:hover{background:#465562}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Baret Tespit Sistemi</h1>
+  <span class="badge" id="bekleyenRozet" style="display:none">0</span>
+  <div class="spacer"></div>
+  <span class="ipucu">kamera: <kbd>1</kbd>-<kbd>9</kbd> &nbsp; inceleme: <kbd>A</kbd> onayla <kbd>R</kbd> reddet</span>
+  <button class="bildirim-btn" id="bildirimBtn" onclick="bildirimIzniIste()">🔔 Bildirimleri Aç</button>
+  <button class="ekle-btn" id="teknikBtn" onclick="teknikGorunumDegistir()"
+          title="Video uzerinde kafa/kisi sayaci ve kalibrasyon degerlerini goster/gizle">🛠 Teknik Görünüm</button>
+  <button class="ekle-btn" id="tamEkranBtn" onclick="tamEkranDegistir()"
+          title="Paneli tam ekran yap">⛶ Tam Ekran</button>
+  <button class="ekle-btn" onclick="kameraModalAc()">🔗 Kamera / Link</button>
+  <div class="canli-durum" id="canliDurum" title="Panelin sunucuyla baglantisi">
+    <span class="cd-nokta"></span><span class="cd-yazi">Canlı</span>
+  </div>
+  <div class="clock" id="saat"></div>
+</header>
+
+<div id="ihlalBanner">
+  <div class="ic" onclick="bannerTiklandi()">
+    <span class="ikon">⚠️</span>
+    <div class="metin">
+      <b id="bannerBaslik">Yeni ihlal</b>
+      <span id="bannerAlt"></span>
+    </div>
+    <button class="kapat" onclick="event.stopPropagation();bannerGizle()">✕</button>
+  </div>
+</div>
+
+<div class="sayfa">
+
+  <div class="stats">
+    <div class="stat amber"><span class="ikon">⏳</span><div><div class="n" id="sBekleyen">0</div><div class="l">Inceleme Bekleyen</div></div></div>
+    <div class="stat green"><span class="ikon">✅</span><div><div class="n" id="sOnayli">0</div><div class="l">Onaylanan</div></div></div>
+    <div class="stat"><span class="ikon">🚫</span><div><div class="n" id="sRed">0</div><div class="l">Reddedilen</div></div></div>
+    <div class="stat"><span class="ikon">📷</span><div><div class="n" id="sKamera">0</div><div class="l">Aktif Kamera</div></div></div>
+  </div>
+
+  <div class="orta">
+    <div id="secici"></div>
+    <div class="kart">
+      <div class="kart-b">
+        <span class="dot" id="buyukDot"></span>
+        <span id="buyukAd">Kamera secilmedi</span>
+        <div class="gorunum-secici" id="gorunumSecici" style="visibility:hidden">
+          <button class="gs-buton aktif" data-mod="ihlal" onclick="gorunumSec('ihlal')"
+                  title="Tespit kutulari ve etiketleriyle isaretlenmis goruntu">🎯 İhlal</button>
+          <button class="gs-buton" data-mod="kamera" onclick="gorunumSec('kamera')"
+                  title="Hicbir isaret olmadan kameranin temiz goruntusu">📷 Kamera</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="hassasiyet-cubuk" id="hassasiyetGrup" style="visibility:hidden"
+             title="Tespit hassasiyeti - Dusuk: sadece emin oldugu kisileri gosterir, kaçırma riski var. Yuksek: zayif/uzak tespitleri de gosterir, yanlis alarm riski artar.">
+          <span class="h-ikon">🎯</span>
+          <span class="h-etiket">Hassasiyet</span>
+          <input type="range" id="hassasiyetSlider" min="0" max="100" value="75"
+                 oninput="hassasiyetSuruklenirken(this.value)"
+                 onchange="hassasiyetDegisti(this.value)">
+          <span class="h-deger" id="hassasiyetDeger">75%</span>
+          <button class="h-sifirla" id="hassasiyetSifirlaBtn" onclick="hassasiyetSifirla()"
+                  title="Bu kamera icin onerilen (otomatik) hassasiyete geri don">↺</button>
+        </div>
+        <span style="color:var(--dim);font-weight:400;font-size:11px" id="buyukMeta"></span>
+      </div>
+      <div id="buyukKutu">
+        <img id="buyuk">
+        <div id="buyukYok">Soldaki listeden bir kamera sec</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kart" id="kuyrukKart">
+    <div class="sekmeler">
+      <button class="sekme bekleyen aktif" data-durum="bekleyen">
+        Inceleme Bekleyen <span class="say" id="tBekleyen">0</span></button>
+      <button class="sekme" data-durum="onayli">
+        Onaylanan <span class="say" id="tOnayli">0</span></button>
+      <button class="sekme" data-durum="reddedilen">
+        Reddedilen <span class="say" id="tRed">0</span></button>
+      <div class="spacer"></div>
+      <span style="align-self:center;color:var(--dim);font-size:11.5px"
+            id="kuyrukIpucu">Fotografa tiklayarak buyut</span>
+      <button class="temizle-btn" onclick="tumunuTemizle()" title="Tum kayitlari (bekleyen+onaylanan+reddedilen) siler - canliya gecmeden once test verisini temizlemek icin">🗑️ Tumunu Temizle</button>
+    </div>
+    <div id="kuyruk"></div>
+  </div>
+</div>
+
+<div id="modal" onclick="if(event.target.id==='modal')kapat()">
+  <div class="m-kutu">
+    <div class="m-bas">
+      <span class="kno" id="mNo"></span>
+      <span id="mRozet"></span>
+      <div class="spacer"></div>
+      <button class="sade" onclick="kapat()">Kapat <kbd>Esc</kbd></button>
+    </div>
+    <div class="m-gorseller">
+      <div class="m-g"><div class="bas">YAKIN GORUNUM</div>
+        <div class="sar"><img id="mKirpma" onerror="gorselYok(this)" onload="gorselVar(this)"></div></div>
+      <div class="m-g"><div class="bas">TAM KARE</div>
+        <div class="sar"><img id="mTam" onerror="gorselYok(this)" onload="gorselVar(this)"></div></div>
+    </div>
+    <div class="m-alt">
+      <div class="m-meta" id="mMeta"></div>
+      <button class="ret" onclick="karar(false)">Reddet <kbd>R</kbd></button>
+      <button class="onay" onclick="karar(true)">Onayla <kbd>A</kbd></button>
+    </div>
+  </div>
+</div>
+
+<div id="kameraModal" onclick="if(event.target.id==='kameraModal')kameraModalKapat()">
+  <div class="k-kutu">
+    <div class="k-bas"><span id="kBaslik">Kamera Ekle</span></div>
+    <div class="k-govde">
+      <div class="k-alan">
+        <label>Kamera Kimligi (id)</label>
+        <input id="kId" placeholder="orn: kamera4" autocomplete="off"
+               onkeydown="if(event.key==='Enter')kameraKaydet()">
+      </div>
+      <div class="k-alan">
+        <label>Gorunen Ad</label>
+        <input id="kAd" placeholder="orn: Depo Girisi" autocomplete="off"
+               onkeydown="if(event.key==='Enter')kameraKaydet()">
+      </div>
+      <div class="k-alan">
+        <label>Kamera Linki (RTSP/HTTP/dosya yolu)</label>
+        <input id="kUrl" placeholder="rtsp://kullanici:sifre@192.168.1.50:554/stream1" autocomplete="off"
+               onkeydown="if(event.key==='Enter')kameraKaydet()">
+      </div>
+      <div class="k-alan">
+        <label>Kamera Mesafesi</label>
+        <select id="kMesafe">
+          <option value="normal">Normal (varsayilan)</option>
+          <option value="yakin">Yakin - kafalar buyuk gorunuyor (daha hizli)</option>
+          <option value="uzak">Uzak / sisli - kafalar kucuk gorunuyor (daha hassas, biraz daha yavas)</option>
+        </select>
+      </div>
+      <div class="k-ipucu">
+        <b>Mesafe</b> tespitin nasil calisacagini ayarlar: kamera uzaktan/sisli
+        cekiyorsa ve model insanlari kaciriyorsa "Uzak" sec - model kucuk
+        kafalari yakalamak icin daha dikkatli (ama biraz daha yavas) tarar.
+      </div>
+      <div class="k-ipucu">
+        Var olan bir kamera kimligini girip linki degistirirsen o kameranin
+        baglantisi guncellenir (eski baglanti kapanir, yenisiyle hemen baslar).
+        Yeni bir kimlik girersen yeni kamera olarak eklenir. Degisiklik
+        config.yaml'a da kaydedilir, program yeniden baslasa da kalir.
+      </div>
+      <div class="k-hata" id="kHata"></div>
+    </div>
+    <div class="k-alt">
+      <button class="ret" id="kSilBtn" style="display:none" onclick="kameraSil()">Kamerayi Sil</button>
+      <div class="spacer"></div>
+      <button class="sade" onclick="kameraModalKapat()">Vazgec</button>
+      <button class="onay" onclick="kameraKaydet()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast">
+  <span id="toastYazi"></span>
+  <button id="toastGeriBtn" onclick="geriAl()">Geri al</button>
+</div>
+
+<script>
+let kameralar = [], secili = null, sonIhlal = {};
+let aktifDurum = 'bekleyen';
+let liste = [], acikKayit = null, sonKarar = null, toastZaman = null;
+let gorulenIdler = new Set(), ilkYukleme = true;
+const ALARM_SN = 90;
+
+function saatGuncelle(){
+  document.getElementById('saat').textContent =
+    new Date().toLocaleTimeString('tr-TR');
+}
+setInterval(saatGuncelle,1000); saatGuncelle();
+
+/* ================= KAMERALAR ================= */
+function seciciCiz(){
+  document.getElementById('secici').innerHTML = kameralar.map((c,i)=>`
+    <div class="sec ${c.id===secili?'aktif':''}" data-id="${c.id}"
+         onclick="sec('${c.id}')" title="${c.name}">
+      ${c.connected
+        ? `<img src="/stream/${c.id}?genislik=260&kalite=55" alt="">`
+        : `<div class="yok">Baglanti yok</div>`}
+      <div class="sec-alt">
+        <span class="dot ${c.connected?'on':'off'}"></span>
+        <span class="sec-ad">${c.name}</span>
+        ${i<9?`<span class="tus">${i+1}</span>`:''}
+        <button class="sec-duzenle" title="Link/ad degistir"
+                onclick="event.stopPropagation();kameraModalAc('${c.id}')">&#9998;</button>
+      </div>
+    </div>`).join('') + `
+    <div class="sec-ekle" onclick="kameraModalAc()" title="Yeni kamera ekle">
+      <span class="se-artı">＋</span><span>Kamera Ekle</span>
+    </div>`;
+  seciciGuncelle();
+}
+function seciciGuncelle(){
+  const simdi = Date.now();
+  kameralar.forEach(c=>{
+    const el = document.querySelector(`.sec[data-id="${c.id}"]`);
+    if(!el) return;
+    el.classList.toggle('aktif', c.id===secili);
+    el.classList.toggle('alarm',
+      !!(sonIhlal[c.id] && (simdi-sonIhlal[c.id]) < ALARM_SN*1000));
+    const d = el.querySelector('.dot');
+    if(d) d.className = 'dot ' + (c.connected?'on':'off');
+  });
+}
+function sec(id){
+  secili = id;
+  const c = kameralar.find(x=>x.id===id);
+  const img = document.getElementById('buyuk');
+  const yok = document.getElementById('buyukYok');
+  document.getElementById('buyukAd').textContent = c ? c.name : '-';
+  document.getElementById('buyukDot').className =
+    'dot ' + (c && c.connected ? 'on':'off');
+  if(c && c.connected){
+    streamKaynagiAyarla(); img.style.display='block'; yok.style.display='none';
+  }else{
+    img.removeAttribute('src'); img.style.display='none'; yok.style.display='block';
+    yok.textContent = c ? ('Baglanti yok' + (c.error? ' - '+c.error:'')) : 'Kamera yok';
+  }
+  document.getElementById('hassasiyetGrup').style.visibility = c ? 'visible' : 'hidden';
+  document.getElementById('gorunumSecici').style.visibility = c ? 'visible' : 'hidden';
+  if(c && !hassasiyetSuruklemede){
+    const hv = c.hassasiyet != null ? Math.round(c.hassasiyet) : 75;
+    hassasiyetGorseliAyarla(hv);
+  }
+  try{ localStorage.setItem('secili_kamera', id); }catch(e){}
+  seciciGuncelle();
+}
+
+/* ================= GORUNUM MODU (Ihlal / Kamera) ================= */
+let goruntuModu = 'ihlal';   // 'ihlal' = isaretli, 'kamera' = ham goruntu
+function streamKaynagiAyarla(){
+  if(!secili) return;
+  const img = document.getElementById('buyuk');
+  img.src = '/stream/' + secili + (goruntuModu === 'kamera' ? '?ham=1' : '');
+}
+function gorunumSec(mod){
+  goruntuModu = mod;
+  document.querySelectorAll('.gs-buton').forEach(
+    b => b.classList.toggle('aktif', b.dataset.mod === mod));
+  streamKaynagiAyarla();
+}
+
+/* ================= HASSASIYET KAYDIRICISI ================= */
+let hassasiyetSuruklemede = false;
+
+function hassasiyetGorseliAyarla(v){
+  const slider = document.getElementById('hassasiyetSlider');
+  slider.value = v;
+  document.getElementById('hassasiyetDeger').textContent = Math.round(v) + '%';
+  // Dolgu efekti - tarayicilar range track'i degere gore doldurmaz, elle
+  // yapiyoruz: mavi dolu kisim + gri bos kisim.
+  slider.style.background =
+    `linear-gradient(to right, var(--blue) ${v}%, var(--panel3) ${v}%)`;
+}
+
+function hassasiyetSuruklenirken(v){
+  hassasiyetSuruklemede = true;
+  hassasiyetGorseliAyarla(v);
+}
+
+async function hassasiyetDegisti(v){
+  hassasiyetSuruklemede = false;
+  hassasiyetGorseliAyarla(v);
+  if(!secili) return;
+  try{
+    await fetch('/api/cameras/'+encodeURIComponent(secili)+'/hassasiyet', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({deger: Number(v)})
+    });
+    toastGoster('Hassasiyet %'+v+' olarak ayarlandi');
+  }catch(e){
+    toastGoster('Hassasiyet kaydedilemedi - baglanti hatasi.');
+  }
+}
+
+async function hassasiyetSifirla(){
+  if(!secili) return;
+  try{
+    const r = await fetch('/api/cameras/'+encodeURIComponent(secili)+'/hassasiyet/sifirla', {method:'POST'});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail || 'bilinmeyen hata');
+    hassasiyetGorseliAyarla(Math.round(d.hassasiyet));
+    toastGoster('Kamera icin onerilen hassasiyete donuldu');
+  }catch(e){
+    toastGoster('Sifirlanamadi - baglanti hatasi.');
+  }
+}
+async function kameralariYukle(){
+  try{
+    const cams = await (await fetch('/api/cameras')).json();
+    canliDurumGuncelle(true);
+    document.getElementById('sKamera').textContent =
+      cams.filter(c=>c.connected).length + '/' + cams.length;
+    const degisti = cams.length !== kameralar.length ||
+      cams.some((c,i)=> !kameralar[i] || kameralar[i].id!==c.id ||
+                        kameralar[i].connected!==c.connected);
+    kameralar = cams;
+    if(degisti){
+      seciciCiz();
+      if(!cams.find(c=>c.id===secili)) secili = null;
+      if(!secili){
+        let kayit=null; try{ kayit=localStorage.getItem('secili_kamera'); }catch(e){}
+        const hedef = cams.find(c=>c.id===kayit && c.connected)
+                   || cams.find(c=>c.connected) || cams[0];
+        if(hedef) sec(hedef.id);
+      } else sec(secili);
+    } else seciciGuncelle();
+    const c = kameralar.find(x=>x.id===secili);
+    document.getElementById('buyukMeta').textContent =
+      c && c.connected ? `${c.fps} fps${c.gecikme?'  ·  gecikme '+c.gecikme+'s':''}` : '';
+    if(cams[0]) teknikBtnGuncelle(!!cams[0].show_debug);
+  }catch(e){ canliDurumGuncelle(false); }
+}
+
+/* ================= BAGLANTI DURUMU / TEKNIK GORUNUM / TAM EKRAN ================= */
+function canliDurumGuncelle(basarili){
+  document.getElementById('canliDurum').classList.toggle('sorunlu', !basarili);
+  document.querySelector('#canliDurum .cd-yazi').textContent =
+    basarili ? 'Canlı' : 'Bağlantı sorunu';
+}
+
+let teknikAcik = false;
+function teknikBtnGuncelle(acik){
+  teknikAcik = acik;
+  document.getElementById('teknikBtn').classList.toggle('acik', acik);
+}
+async function teknikGorunumDegistir(){
+  const yeni = !teknikAcik;
+  teknikBtnGuncelle(yeni);   // once iyimser guncelle, akici hissetsin
+  try{
+    await fetch('/api/teknik-gorunum', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({acik: yeni})
+    });
+  }catch(e){
+    teknikBtnGuncelle(!yeni);   // basarisizsa geri al
+    toastGoster('Degistirilemedi - baglanti hatasi.');
+  }
+}
+
+function tamEkranDegistir(){
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().catch(()=>{});
+  }else{
+    document.exitFullscreen();
+  }
+}
+document.addEventListener('fullscreenchange', ()=>{
+  const b = document.getElementById('tamEkranBtn');
+  b.textContent = document.fullscreenElement ? '⛶ Tam Ekrandan Çık' : '⛶ Tam Ekran';
+});
+
+/* ================= KAMERA EKLE / LINK DEGISTIR ================= */
+let kDuzenlenenId = null;   // null = yeni kamera ekleniyor, dolu = mevcut kamera duzenleniyor
+
+function kameraModalAc(id){
+  kDuzenlenenId = id || null;
+  const c = id ? kameralar.find(x=>x.id===id) : null;
+  document.getElementById('kBaslik').textContent =
+    c ? 'Kamera Duzenle' : 'Kamera Ekle / Link Gir';
+  document.getElementById('kId').value = c ? c.id : '';
+  document.getElementById('kId').disabled = !!c;   // mevcut kameranin id'si degismez
+  document.getElementById('kAd').value = c ? c.name : '';
+  document.getElementById('kUrl').value = '';       // guvenlik: mevcut link ekranda gosterilmiyor
+  document.getElementById('kUrl').placeholder = c
+    ? 'Yeni link (bos birakirsan mevcut link degismez)'
+    : 'rtsp://kullanici:sifre@192.168.1.50:554/stream1';
+  document.getElementById('kMesafe').value = (c && c.mesafe) ? c.mesafe : 'normal';
+  document.getElementById('kSilBtn').style.display = c ? '' : 'none';
+  kHataGizle();
+  document.getElementById('kameraModal').classList.add('show');
+  setTimeout(()=>document.getElementById(c?'kUrl':'kId').focus(), 30);
+}
+function kameraModalKapat(){
+  document.getElementById('kameraModal').classList.remove('show');
+}
+function kHataGoster(msg){
+  const el = document.getElementById('kHata');
+  el.textContent = msg; el.style.display = 'block';
+}
+function kHataGizle(){
+  document.getElementById('kHata').style.display = 'none';
+}
+async function kameraKaydet(){
+  const id = document.getElementById('kId').value.trim();
+  const ad = document.getElementById('kAd').value.trim();
+  const url = document.getElementById('kUrl').value.trim();
+  const mesafe = document.getElementById('kMesafe').value;
+  if(!id){ kHataGoster('Kamera kimligi bos olamaz.'); return; }
+  if(!kDuzenlenenId && !url){ kHataGoster('Yeni kamera icin link gerekli.'); return; }
+  if(kDuzenlenenId && !url){
+    kHataGoster('Link bos - mevcut linki degistirmek icin yeni linki gir.');
+    return;
+  }
+  try{
+    const r = await fetch('/api/cameras', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({id, name: ad || id, url, mesafe})
+    });
+    if(!r.ok){
+      const j = await r.json().catch(()=>({}));
+      kHataGoster(j.detail || 'Kaydedilemedi (sunucu hatasi).');
+      return;
+    }
+    kameraModalKapat();
+    toastGoster(kDuzenlenenId ? `${id} guncellendi` : `${id} eklendi`);
+    await kameralariYukle();
+    sec(id);
+  }catch(e){
+    kHataGoster('Baglanti hatasi - panel calisiyor mu?');
+  }
+}
+async function kameraSil(){
+  if(!kDuzenlenenId) return;
+  if(!confirm(`"${kDuzenlenenId}" kamerasini kaldirmak istedigine emin misin?`)) return;
+  try{
+    await fetch('/api/cameras/'+encodeURIComponent(kDuzenlenenId), {method:'DELETE'});
+    kameraModalKapat();
+    toastGoster(`${kDuzenlenenId} kaldirildi`);
+    if(secili===kDuzenlenenId) secili = null;
+    await kameralariYukle();
+  }catch(e){
+    kHataGoster('Silinemedi - baglanti hatasi.');
+  }
+}
+
+/* ================= INCELEME KUYRUGU ================= */
+async function tumunuTemizle(){
+  const girilen = prompt(
+    'Bekleyen + Onaylanan + Reddedilen kayitlarin HEPSI ve tum '+
+    'fotograflar SILINECEK. Bu islem GERI ALINAMAZ.\n\n'+
+    'Onaylamak icin kutuya SIL yaz:'
+  );
+  if(girilen === null) return;
+  if(girilen.trim().toUpperCase() !== 'SIL'){
+    toastGoster('Iptal edildi - "SIL" yazilmadi.');
+    return;
+  }
+  try{
+    const r = await fetch('/api/violations/temizle-hepsi?onay=SIL', {method:'POST'});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail || 'bilinmeyen hata');
+    toastGoster(`Temizlendi - ${d.silinen} kayit silindi`);
+    kapat();
+    await sayilariYukle();
+    await kuyrukYukle();
+  }catch(e){
+    toastGoster('Silinemedi - baglanti hatasi.');
+  }
+}
+
+async function sayilariYukle(){
+  try{
+    const s = await (await fetch('/api/kuyruk')).json();
+    document.getElementById('sBekleyen').textContent = s.bekleyen;
+    document.getElementById('sOnayli').textContent   = s.onayli;
+    document.getElementById('sRed').textContent      = s.reddedilen;
+    document.getElementById('tBekleyen').textContent = s.bekleyen;
+    document.getElementById('tOnayli').textContent   = s.onayli;
+    document.getElementById('tRed').textContent      = s.reddedilen;
+    const b = document.getElementById('bekleyenRozet');
+    if(s.bekleyen>0){ b.style.display='inline-block';
+      b.textContent = s.bekleyen + ' inceleme bekliyor'; }
+    else b.style.display='none';
+  }catch(e){}
+}
+
+function zamanYaz(ts){
+  const d = new Date(ts);
+  return { tarih: d.toLocaleDateString('tr-TR'),
+           saat: d.toLocaleTimeString('tr-TR') };
+}
+
+async function kuyrukYukle(){
+  try{
+    liste = await (await fetch(
+      '/api/violations?limit=200&durum='+aktifDurum)).json();
+    liste.forEach(v=>{
+      const t = new Date(v.timestamp).getTime();
+      if(!sonIhlal[v.camera_id] || t>sonIhlal[v.camera_id]) sonIhlal[v.camera_id]=t;
+    });
+    seciciGuncelle();
+    ciz();
+  }catch(e){}
+}
+
+function ciz(){
+  const box = document.getElementById('kuyruk');
+  if(!liste.length){
+    const mesaj = aktifDurum==='bekleyen'
+      ? '<b>Inceleme bekleyen kayit yok</b>Yeni tespitler burada belirecek.'
+      : (aktifDurum==='onayli'
+         ? '<b>Onaylanan kayit yok</b>Bekleyen sekmesinden onayladiklarin buraya gelir.'
+         : '<b>Reddedilen kayit yok</b>Reddettiklerin burada BIRIKMEZ - Reddet butonuna basinca kayit ve goruntusu aninda silinir.');
+    box.innerHTML = '<div class="bos">'+mesaj+'</div>';
+    return;
+  }
+  box.innerHTML = liste.map(v=>{
+    const z = zamanYaz(v.timestamp);
+    const foto = v.crop || v.snapshot;
+    const yeni = !ilkYukleme && !gorulenIdler.has(v.id);
+    const guv = (v.confidence!=null) ? '%'+(v.confidence*100).toFixed(0) : '-';
+    let islem;
+    if(aktifDurum==='bekleyen'){
+      islem = `<button class="ret" onclick="event.stopPropagation();hizli(${v.id},false)">Reddet</button>
+               <button class="onay" onclick="event.stopPropagation();hizli(${v.id},true)">Onayla</button>`;
+    }else{
+      islem = `<button class="geri" onclick="event.stopPropagation();geriAlId(${v.id})">Geri al</button>`;
+    }
+    const rozet = aktifDurum==='onayli'
+      ? '<span class="rozet onayli">onaylandi</span>'
+      : (aktifDurum==='reddedilen' ? '<span class="rozet red">yanlis alarm</span>' : '');
+    return `
+      <div class="ihlal ${yeni?'yeni':''}">
+        <div class="foto" onclick="ac(${v.id})">
+          ${foto?`<img src="/snapshot/${foto}" loading="lazy" onerror="gorselYok(this)">`:'<div class="foto-yok">goruntu yok</div>'}
+          <span class="no">#${v.id}</span>
+        </div>
+        <div class="ihlal-bilgi">
+          <span class="zaman">${z.saat}</span>
+          <span class="kam" title="Bu kameraya git" onclick="event.stopPropagation();sec('${v.camera_id}')">${z.tarih} &middot; ${v.camera_name||v.camera_id}</span>
+          <span class="guv">guven ${guv}</span>
+          ${rozet}
+        </div>
+        <div class="ihlal-islem">${islem}</div>
+      </div>`;
+  }).join('');
+  gorulenIdler = new Set(liste.map(v=>v.id));
+  ilkYukleme = false;
+}
+
+/* ---- goruntu bulunamadi durumu ---- */
+function gorselYok(img){
+  img.classList.add('yok');
+  img.onerror = null;
+  let mesaj = img.parentElement.querySelector('.yok-mesaj');
+  if(!mesaj){
+    mesaj = document.createElement('div');
+    mesaj.className = 'yok-mesaj';
+    mesaj.textContent = 'Görüntü bulunamadı (dosya diskte yok)';
+    img.parentElement.appendChild(mesaj);
+  }
+}
+function gorselVar(img){
+  img.classList.remove('yok');
+  const mesaj = img.parentElement.querySelector('.yok-mesaj');
+  if(mesaj) mesaj.remove();
+}
+
+/* ---- inceleme penceresi ---- */
+function ac(id){
+  const v = liste.find(x=>x.id===id);
+  if(!v) return;
+  acikKayit = v;
+  const z = zamanYaz(v.timestamp);
+  document.getElementById('mNo').textContent = 'Kayit #'+v.id;
+  document.getElementById('mRozet').innerHTML = aktifDurum==='onayli'
+    ? '<span class="rozet onayli">onaylandi</span>'
+    : (aktifDurum==='reddedilen' ? '<span class="rozet red">yanlis alarm</span>' : '');
+  document.getElementById('mKirpma').src = '/snapshot/'+(v.crop||v.snapshot);
+  document.getElementById('mTam').src    = '/snapshot/'+(v.snapshot||v.crop);
+  const guv = (v.confidence!=null) ? '%'+(v.confidence*100).toFixed(0) : '-';
+  document.getElementById('mMeta').innerHTML =
+    `<b>${z.tarih}  ${z.saat}</b><br>` +
+    `${v.camera_name||v.camera_id}  &middot;  sistem guveni ${guv}` +
+    (v.track_id>=0 ? `  &middot;  izleme kodu #${v.track_id}` : '');
+  document.getElementById('modal').classList.add('show');
+}
+function kapat(){
+  document.getElementById('modal').classList.remove('show');
+  acikKayit = null;
+}
+async function karar(onay){
+  if(!acikKayit) return;
+  const id = acikKayit.id;
+  kapat();
+  await hizli(id, onay);
+}
+async function hizli(id, onay){
+  await fetch(`/api/violations/${id}/review?valid=${onay}`,{method:'POST'});
+  if(onay){
+    // Onaylandi - karar geri alinabilir (kayit hala duruyor).
+    sonKarar = id;
+    toastGoster(`Kayit #${id} onaylandi`, true);
+  }else{
+    // Reddedildi - kayit ve goruntusu SERVER'DA ANINDA SILINDI, geri
+    // alinacak bir sey kalmadi (bkz. panel.py /review, database.py
+    // reddi_sil). "Geri al" butonu bu yuzden gosterilmez.
+    sonKarar = null;
+    toastGoster(`Kayit #${id} reddedildi (goruntu silindi)`, false);
+  }
+  await Promise.all([kuyrukYukle(), sayilariYukle()]);
+}
+async function geriAlId(id){
+  await fetch(`/api/violations/${id}/geri`,{method:'POST'});
+  await Promise.all([kuyrukYukle(), sayilariYukle()]);
+}
+async function geriAl(){
+  if(sonKarar==null) return;
+  await geriAlId(sonKarar);
+  sonKarar = null;
+  toastGizle();
+}
+function toastGoster(yazi, geriAlVarMi=true){
+  document.getElementById('toastYazi').textContent = yazi;
+  document.getElementById('toastGeriBtn').style.display = geriAlVarMi ? '' : 'none';
+  document.getElementById('toast').classList.add('show');
+  clearTimeout(toastZaman);
+  toastZaman = setTimeout(toastGizle, 6000);
+}
+function toastGizle(){ document.getElementById('toast').classList.remove('show'); }
+
+/* ---- sekmeler ---- */
+document.querySelectorAll('.sekme').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.sekme').forEach(x=>x.classList.remove('aktif'));
+    b.classList.add('aktif');
+    aktifDurum = b.dataset.durum;
+    ilkYukleme = true;
+    document.getElementById('kuyrukIpucu').textContent =
+      aktifDurum==='bekleyen' ? 'Fotografa tiklayarak buyut'
+                              : 'Geri al ile kayit yeniden incelemeye doner';
+    kuyrukYukle();
+  });
+});
+
+/* ---- klavye ---- */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    kapat();
+    kameraModalKapat();
+    return;
+  }
+  if(document.getElementById('kameraModal').classList.contains('show')) return;
+  if(acikKayit){
+    const k = e.key.toLowerCase();
+    if(k==='a'){ e.preventDefault(); karar(true); }
+    if(k==='r'){ e.preventDefault(); karar(false); }
+    return;
+  }
+  if(e.key>='1' && e.key<='9' && !e.ctrlKey && !e.altKey){
+    const i = parseInt(e.key,10)-1;
+    if(kameralar[i]) sec(kameralar[i].id);
+  }
+});
+
+/* ================= AKILLI BILDIRIM ================= */
+// Ayni kisi (kamera+track_id) bareti takana kadar tekrar tekrar tespit
+// edilse bile sunucu tarafi (bkz. database.py bildirim_adaylari) bunu
+// zaten 15 dakikada bir defaya seyreltiyor - burada sadece gelen
+// bildirimi GOSTERMEK ile ilgileniyoruz, spam kontrolu sunucuda.
+let sonBildirimZamani = new Date().toISOString().slice(0,19);  // sayfa acilinca eskiler "yeni" sayilmasin
+let bildirimKuyrugu = [];
+let bannerAcikMi = false, bannerZamanlayici = null;
+const BANNER_MIN_ARALIK_MS = 4000;   // ard arda banner gelip 'hic kapanmiyor' hissi vermesin
+
+let bildirimlerSessiz = false;   // buton ile ac/kapat - OS izninden BAGIMSIZ, bizim kendi susturmamiz
+const BANNER_KUYRUK_SINIRI = 3;  // ustunde "N tespit daha" ozetine gecilir - art arda sonsuz banner akmasin
+
+function bildirimIzniIste(){
+  if(!('Notification' in window)){
+    document.getElementById('bildirimBtn').textContent = '🔕 Bu tarayici desteklemiyor';
+    return;
+  }
+  if(Notification.permission === 'granted'){
+    // Izin zaten verilmis - butonu artik ac/kapat (sessize alma) anahtari olarak kullan
+    bildirimlerSessiz = !bildirimlerSessiz;
+    if(bildirimlerSessiz){ bildirimKuyrugu = []; bannerGizle(); }
+    izinDurumuGuncelle('granted');
+    return;
+  }
+  Notification.requestPermission().then(izinDurumuGuncelle);
+}
+function izinDurumuGuncelle(durum){
+  const b = document.getElementById('bildirimBtn');
+  if(!b) return;
+  if(durum === 'granted' && !bildirimlerSessiz){
+    b.textContent = '🔔 Bildirimler Acik (kapatmak icin tikla)'; b.classList.add('acik');
+  } else if(durum === 'granted' && bildirimlerSessiz){
+    b.textContent = '🔕 Bildirimler Kapali (acmak icin tikla)'; b.classList.remove('acik');
+  } else if(durum === 'denied'){ b.textContent = '🔕 Bildirimler Engellendi'; }
+  else { b.textContent = '🔔 Bildirimleri Ac'; b.classList.remove('acik'); }
+}
+
+async function bildirimleriKontrolEt(){
+  try{
+    const yeniler = await (await fetch(
+      '/api/bildirimler?since=' + encodeURIComponent(sonBildirimZamani))).json();
+    if(!yeniler.length) return;
+    yeniler.forEach(v=>{ if(v.timestamp > sonBildirimZamani) sonBildirimZamani = v.timestamp; });
+    if(bildirimlerSessiz) return;   // zamanlama takibi yine de guncellendi, sadece gosterim yok
+
+    yeniler.forEach(v=>bildirimKuyrugu.push(v));
+    // Masaustu bildirimi (sessiz - sesli uyari istenmiyordu) - sayfa
+    // arka planda/simge durumunda kucultulmusse de gorunur. Kuyruk
+    // cok kabarikse (bkz. asagida) tek tek degil, tek bir ozet
+    // masaustu bildirimi yeterli - art arda 10 tane patlatmaya gerek yok.
+    if('Notification' in window && Notification.permission === 'granted'){
+      if(yeniler.length > BANNER_KUYRUK_SINIRI){
+        const n = new Notification('Baretsiz kisi tespit edildi', {
+          body: `${yeniler.length} yeni tespit - goruntulemek icin panele bak`,
+          silent: true, tag: 'ihlal-ozet',
+        });
+        n.onclick = () => window.focus();
+      } else {
+        yeniler.forEach(v=>{
+          const n = new Notification('Baretsiz kisi tespit edildi', {
+            body: `${v.camera_name || v.camera_id}  ·  ${zamanYaz(v.timestamp).saat}`,
+            silent: true, tag: 'ihlal-' + v.id,
+          });
+          n.onclick = () => { window.focus(); sec(v.camera_id); n.close(); };
+        });
+      }
+    }
+    if(!bannerAcikMi) bannerSiradakiniGoster();
+  }catch(e){}
+}
+function bannerSiradakiniGoster(){
+  // Kuyrukta cok fazla bekleyen varsa (orn. test videosu dongude oldugu
+  // icin - GERCEK kamerada bu kadar birikmez) tek tek gostermek yerine
+  // ozetle ve kuyrugu temizle - yoksa banner hic durmadan akip "hic
+  // kapanmiyor" hissi verir.
+  if(bildirimKuyrugu.length > BANNER_KUYRUK_SINIRI){
+    const n = bildirimKuyrugu.length;
+    bildirimKuyrugu = [];
+    bannerAcikMi = true;
+    document.getElementById('bannerBaslik').textContent = `${n} yeni tespit var`;
+    document.getElementById('bannerAlt').textContent =
+      'Cok sayida ardisik tespit - listeye bakmak icin tikla';
+    document.getElementById('ihlalBanner').dataset.camId = '';
+    document.getElementById('ihlalBanner').classList.add('show');
+    clearTimeout(bannerZamanlayici);
+    bannerZamanlayici = setTimeout(bannerGizle, 7000);
+    return;
+  }
+  const v = bildirimKuyrugu.shift();
+  if(!v) return;
+  bannerAcikMi = true;
+  document.getElementById('bannerBaslik').textContent =
+    `Baretsiz kisi tespit edildi - ${v.camera_name || v.camera_id}`;
+  document.getElementById('bannerAlt').textContent =
+    `${zamanYaz(v.timestamp).saat}  ·  guven %${v.confidence!=null?(v.confidence*100).toFixed(0):'-'}  ·  goruntulemek icin tikla`;
+  document.getElementById('ihlalBanner').dataset.camId = v.camera_id;
+  document.getElementById('ihlalBanner').classList.add('show');
+  clearTimeout(bannerZamanlayici);
+  bannerZamanlayici = setTimeout(bannerGizle, 7000);
+}
+function bannerGizle(){
+  document.getElementById('ihlalBanner').classList.remove('show');
+  clearTimeout(bannerZamanlayici);
+  // Kuyrukta hemen ardindan baska bildirim varsa bile araya bir bosluk
+  // koy - yoksa (ozellikle test videosu surekli yeni tespit uretirken)
+  // banner arka arkaya hemen yenilenip 'hic kapanmiyor' hissi veriyordu.
+  setTimeout(()=>{
+    bannerAcikMi = false;
+    if(!bildirimlerSessiz && bildirimKuyrugu.length) bannerSiradakiniGoster();
+  }, BANNER_MIN_ARALIK_MS);
+}
+function bannerTiklandi(){
+  const id = document.getElementById('ihlalBanner').dataset.camId;
+  if(id) sec(id);
+  bannerGizle();
+}
+
+if('Notification' in window) izinDurumuGuncelle(Notification.permission);
+
+kameralariYukle(); sayilariYukle(); kuyrukYukle();
+setInterval(kameralariYukle, 4000);
+setInterval(sayilariYukle, 5000);
+setInterval(()=>{ if(!acikKayit) kuyrukYukle(); }, 5000);
+setInterval(seciciGuncelle, 5000);
+setInterval(bildirimleriKontrolEt, 6000);
+</script>
+</body>
+</html>

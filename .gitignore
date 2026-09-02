@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Buyuk model agirliklari (GitHub 100MB limiti + repo boyutu icin haric)
+models/
+*.pt
+
+# Test videolari (buyuk, video_test7.mp4 ~324MB > GitHub limiti)
+test_videolari/
+*.mp4
+
+# Calisma zamani verisi / durum
+ihlaller.db
+ihlaller/
+
+# Egitim ile ilgili buyuk klasorler
+dataset/
+dataset_hazir/
+dataset_ince_hazir/
+dataset_ince_hazir_kopya/
+runs/
+t7_egitim_eklentisi/
+t7_egitim_eklentisi_v2/
+
+# Gecici/ide
+*.zip
+.idea/
+.vscode/
