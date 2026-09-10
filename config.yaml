@@ -1,3 +1,12 @@
+# URETIM MAKINESI: 12GB VRAM'lik GPU. Bu kart tum 12 kamerayi ayni anda
+# guvenle kaldirabilecek seviyede oldugu icin sinir kaldirildi (0 = sinirsiz).
+# Panel acikken "Sistem" penceresinden VRAM kullanimini izlemeye devam et -
+# eger VRAM dolmaya baslarsa (baska yazilimlar da ayni karti paylasiyorsa
+# ya da ileride kamera sayisi artarsa) burayi tekrar bir sayiya (orn. 8-10)
+# cekip kapasiteyi sinirlayabilirsin - kod tarafinda baska hicbir sey
+# degismez, "sirada" bekleyen kameralar otomatik devreye girer.
+# (Eski 4GB'lik test laptopunda bu deger 3 idi - orada VRAM yetersizdi.)
+max_aktif_kamera: 0
 model:
   mode: head_first
   head_model: models/best.pt
@@ -20,28 +29,81 @@ model:
   sahi_postprocess_metric: IOU
   sahi_postprocess_threshold: 0.45
 cameras:
-- id: KAM-01
-  name: Hangar Ana
-  url: test_videolari/video_test.mp4
+# DOCKER YOLLARI: konteyner icinde bu videolar "/app/goruntuler/..." olarak
+# gorunuyor (bkz. docker-compose.yml -> volumes). Bu, Windows'taki gercek
+# "goruntuler" klasorunu ":ro" (salt okunur) olarak konteynerin icine
+# baglayan bir "mount". ONEMLI: klasor adi ASCII olmali (goruntuler, "ö/ü"
+# OLMADAN) - Docker Desktop'in Windows<->WSL2 yol donusumu Turkce
+# karakterli klasor adlarinda calismiyor ("Baglanti yok" / mount hatasi
+# veriyor). Yani Desktop'taki "görüntüler" klasorunu BIR KERE "goruntuler"
+# olarak yeniden adlandirman gerekiyor (icindeki dosya adlarina dokunma,
+# onlar boyle kalabilir) - bkz. sohbetteki adim adim talimat.
+- id: dis-depo
+  name: Dış Depo
+  url: /app/goruntuler/Dış depo.mp4
   enabled: true
   mesafe: normal
-- id: KAM-02
-  name: Hangar Yol Tarafi
-  url: test_videolari/video_test6.mp4
+- id: hangar-giris
+  name: Hangar Giriş
+  url: /app/goruntuler/Hangar giriş.mp4
   enabled: true
   mesafe: normal
-- id: KAM-03
-  name: Kamera 3
-  url: test_videolari/video_test7.mp4
+- id: hangar-giris-2
+  name: Hangar Giriş 2
+  url: /app/goruntuler/Hangar giriş 2.mp4
   enabled: true
-  mesafe: uzak
-- id: KAM-04
-  name: Kamera 4
-  url: ''
-  enabled: false
+  mesafe: normal
+- id: hurdalik
+  name: Hurdalık
+  url: /app/goruntuler/Hurdalık.mp4
+  enabled: true
+  mesafe: normal
+- id: ic-arka-orta
+  name: İç Arka Orta
+  url: /app/goruntuler/İç arka orta.mp4
+  enabled: true
+  mesafe: normal
+- id: ic-arka-sag
+  name: İç Arka Sağ
+  url: /app/goruntuler/İç arka sağ.mp4
+  enabled: true
+  mesafe: normal
+- id: ic-arka-sag-2
+  name: İç Arka Sağ 2
+  url: /app/goruntuler/İç arka sağ2.mp4
+  enabled: true
+  mesafe: normal
+- id: ic-on-sag
+  name: İç Ön Sağ
+  url: /app/goruntuler/İç ön sağ.mp4
+  enabled: true
+  mesafe: normal
+- id: ic-on-sag-2
+  name: İç Ön Sağ 2
+  url: /app/goruntuler/İç ön sağ 2.mp4
+  enabled: true
+  mesafe: normal
+- id: ic-on-sol
+  name: İç Ön Sol
+  url: /app/goruntuler/İç Ön Sol.mp4
+  enabled: true
+  mesafe: normal
+- id: ic-on-sol-2
+  name: İç Ön Sol 2
+  url: /app/goruntuler/İç ön sol 2.mp4
+  enabled: true
+  mesafe: normal
+- id: on-orta
+  name: Ön Orta
+  url: /app/goruntuler/On Orta.mp4
+  enabled: true
   mesafe: normal
 detection:
-  target_fps: 2
+  # Tum kameralar icin SABIT deger (kamera basina farkli deger verilmiyor -
+  # bilerek boyle: tek, tutarli bir kural). 2'den 1'e dusuruldu: GPU yukunu
+  # yariya indirir, ama saniyede 1 kontrol hala kisa sureli gecisleri
+  # yakalayabilecek kadar sik (5 saniyede 1'e gore cok daha guvenli).
+  target_fps: 1
   tracking_enabled: true
   auto_calibrate: true
   cal_reach_head_mult: 3.5
@@ -54,6 +116,18 @@ detection:
   body_w_mult: 2.6
   body_h_mult: 6.0
   inference_lock: true
+  # ASAGIDAKI IKI AYAR "batch inference" icin - cok kamerali kurulumlarda
+  # gecikmeyi dusurur. batch_wait_ms: kameralarin biriken kareleri TEK GPU
+  # cagrisinda birlestirilmeden once beklenecek pencere (milisaniye). Cok
+  # dusuk olursa kameralar birbirini yakalayamaz (batching az olur), cok
+  # yuksek olursa gereksiz gecikme eklenir. batch_max_size: tek bir GPU
+  # cagrisinda en fazla kac karenin birlestirilecegi (VRAM'e gore ayarlanir -
+  # 12GB'lik kartlarda 8-16 arasi güvenli). 12 kameranin TAMAMI ayni anda
+  # aktifse (max_aktif_kamera: 0) hepsi tek pakette birlesebilsin diye 12
+  # yapildi - VRAM zorlanirsa (bkz. panel "Sistem" penceresi) 8'e geri
+  # cekilebilir, kod tarafinda baska hicbir sey degismez.
+  batch_wait_ms: 25
+  batch_max_size: 12
   head_zone_ratio: 0.55
   match_pad_ratio: 0.5
   require_person_match: true

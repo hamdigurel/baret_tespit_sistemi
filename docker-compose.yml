@@ -1,24 +1,42 @@
+# KULLANIM:
+#   docker compose up -d --build     -> derle + arka planda baslat
+#   docker compose logs -f           -> canli log izle
+#   docker compose down              -> durdur
+#
+# GPU: "gpus: all" satiri konteynerin TUM GPU'lari gormesini saglar.
+# Bunun calismasi icin Docker Desktop'ta GPU destegi acik olmali
+# (bkz. asagidaki sohbet mesajindaki kurulum notlari).
+#
+# VOLUME'LER (disaridan baglanan dosya/klasorler): buradaki her satir,
+# konteyner icindeki bir yolu, BU BILGISAYARDAKI gercek dosya/klasore
+# baglar. Yani config.yaml'i panelden degistirdiginde ya da
+# ince_ayar.py yeni bir model urettiginde, konteyneri YENIDEN DERLEMEN
+# GEREKMEZ - sadece "docker compose restart" yeterli (config.yaml
+# sadece acilista okunuyor, hatirlarsan).
+
 services:
-  baret-tespit:
+  baret-panel:
     build: .
-    image: baret-tespit:latest
-    container_name: baret-tespit
+    image: baret-sistem:latest
+    container_name: baret-panel
+    gpus: all
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./models:/app/models
-      - ./ihlaller.db:/app/ihlaller.db
       - ./ihlaller:/app/ihlaller
-      - ./test_videolari:/app/test_videolari
-    # NVIDIA GPU kullanmak icin: hedef PC'de NVIDIA surucu + Docker Desktop
-    # "Use NVIDIA GPU" destegi (Ayarlar > Resources > WSL Integration/GPU) kurulu olmali.
-    # GPU yoksa/gerek yoksa bu blogu tamamen silebilirsin, imaj CPU'da da calisir (yavas).
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      - ./ihlaller.db:/app/ihlaller.db
+      # 12 gercek kamera kaydinin bulundugu klasor - Desktop'ta, proje
+      # klasorunun DISINDA oldugu icin tam yol (mutlak) veriliyor. ":ro"
+      # = konteyner bu videolari SADECE OKUR, degistirmez/silmez.
+      # config.yaml'daki kamera "url" alanlari bu klasoru
+      # "/app/goruntuler/..." olarak gorur (bkz. config.yaml'daki not).
+      # ONEMLI: klasor adi ASCII "goruntuler" olmali - "görüntüler" (Turkce
+      # karakterli) adiyla mount BASARISIZ oluyordu ("Baglanti yok" hatasi,
+      # tum kameralar). Desktop'taki klasoru bir kere "goruntuler" olarak
+      # yeniden adlandirdiktan sonra asagidaki satir dogru calisir.
+      # Gercek IP kameralara (rtsp://...) gecince bu satir tamamen
+      # kaldirilabilir - artik yerel dosyaya ihtiyac kalmaz.
+      - "C:/Users/90545/Desktop/goruntuler:/app/goruntuler:ro"

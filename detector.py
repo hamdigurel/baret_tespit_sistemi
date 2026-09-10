@@ -279,6 +279,116 @@ class StaticSuppressor:
         return sum(1 for a in self.anchors if a["static"])
 
 
+class GlobalReID:
+    """Kameralar arasi basit gorunum eslestirme ('ID Takip' anahtari).
+
+    Panelde 'ID Takip' KAPALIYKEN bu sinif hic cagrilmaz - ekstra GPU/CPU
+    maliyeti sifirdir, mevcut kamera-basina takip (IoUTracker/#track_id)
+    aynen calismaya devam eder.
+
+    ACIKKEN: derin bir ReID modeli (ekstra GPU agirligi) YERINE bilerek
+    cok hafif bir yontem kullanilir - govde kutusunun HSV renk histogrami.
+    Bunun dogal bir sinirlamasi var: tersanede coğu isci ayni/benzer renk
+    is kiyafeti (bare/yelek) giydigi icin renk histogrami tek basina
+    guclu bir kimlik ayrimi yapamaz - farkli iki kisi ayni ID'yi alabilir
+    ya da ayni kisi kamera degistirince yeni bir ID alabilir. Yine de hic
+    eslestirmemekten (her kamerada sifirdan #1, #2...) daha iyi bir
+    baslangic noktasidir, tamamen CPU'da calisir (kucuk bir histogram
+    islemi) ve istenirse panelden aninda kapatilabilir.
+    """
+
+    HIST_BINS = 24            # H ve S kanallarinda kac kutucuk
+    MATCH_THRESHOLD = 0.55    # HISTCMP_CORREL: 1.0 ayni, altinda farkli say
+    GALLERY_TTL = 90.0        # bu sureden uzun gorulmeyen kisi galeriden dusurulur
+
+    def __init__(self):
+        self._gallery = {}   # global_id -> {"hist","cam_id","last_seen"}
+        self._map = {}       # (cam_id, track_id) -> global_id
+        self._next_id = 1
+        self._lock = threading.Lock()
+
+    def reset(self):
+        """Anahtar tekrar acildiginda temiz baslasin diye."""
+        with self._lock:
+            self._gallery.clear()
+            self._map.clear()
+            self._next_id = 1
+
+    @staticmethod
+    def _histogram(frame, bbox):
+        h, w = frame.shape[:2]
+        x1, y1, x2, y2 = bbox
+        x1 = max(0, min(w - 1, int(x1)))
+        x2 = max(0, min(w, int(x2)))
+        y1 = max(0, min(h - 1, int(y1)))
+        y2 = max(0, min(h, int(y2)))
+        if x2 - x1 < 6 or y2 - y1 < 6:
+            return None
+        crop = frame[y1:y2, x1:x2]
+        hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+        hist = cv2.calcHist([hsv], [0, 1], None,
+                             [GlobalReID.HIST_BINS, GlobalReID.HIST_BINS],
+                             [0, 180, 0, 256])
+        cv2.normalize(hist, hist, 0, 1, cv2.NORM_MINMAX)
+        return hist
+
+    def global_id_for(self, frame, cam_id, track_id, bbox, now):
+        """(cam_id, track_id) icin kalici bir global ID doner.
+
+        Ayni takip surdukce onbellekten doner (her karede yeniden histogram
+        cikarmaz) - sadece o takip ilk gorulduğunde galeriyle karsilastirir.
+        """
+        key = (cam_id, track_id)
+        with self._lock:
+            gid = self._map.get(key)
+            if gid is not None:
+                entry = self._gallery.get(gid)
+                if entry is not None:
+                    entry["last_seen"] = now
+                return gid
+
+        hist = self._histogram(frame, bbox)
+        if hist is None:
+            return None
+
+        with self._lock:
+            self._gc(now)
+            best_gid, best_score = None, self.MATCH_THRESHOLD
+            for gid, entry in self._gallery.items():
+                if entry["cam_id"] == cam_id:
+                    continue   # ayni kamera icinde zaten IoUTracker takip ediyor
+                score = cv2.compareHist(hist, entry["hist"], cv2.HISTCMP_CORREL)
+                if score > best_score:
+                    best_score, best_gid = score, gid
+
+            if best_gid is not None:
+                gid = best_gid
+                e = self._gallery[gid]
+                # Aydinlatma/aci degisimine uyum icin histogrami yumusakca guncelle.
+                e["hist"] = 0.7 * e["hist"] + 0.3 * hist
+                e["cam_id"] = cam_id
+                e["last_seen"] = now
+            else:
+                gid = self._next_id
+                self._next_id += 1
+                self._gallery[gid] = {"hist": hist, "cam_id": cam_id,
+                                       "last_seen": now}
+            self._map[key] = gid
+            return gid
+
+    def _gc(self, now):
+        """Cagiran zaten kilidi tutuyor olmali."""
+        dead = [g for g, e in self._gallery.items()
+                if now - e["last_seen"] > self.GALLERY_TTL]
+        if not dead:
+            return
+        for g in dead:
+            del self._gallery[g]
+        dead_set = set(dead)
+        for k in [k for k, v in self._map.items() if v in dead_set]:
+            del self._map[k]
+
+
 class _NullLock:
     """inference_lock: false icin - hicbir sey yapmayan kilit."""
 
@@ -287,6 +397,87 @@ class _NullLock:
 
     def __exit__(self, *a):
         return False
+
+
+class BatchInferenceEngine:
+    """Birden fazla kameranin karelerini TEK GPU cagrisinda birlestirir.
+
+    ESKI DAVRANIS (inference_lock ile): her kamera kendi karesini ayri ayri
+    modele veriyordu, kilit sadece bunlarin ayni anda BASLAMASINI engelliyordu
+    - GPU yine de N ayri ileri-gecis yapiyordu (N kamera x N cagri). Kamera
+    sayisi arttikca toplam sure de dogrusal artiyordu -> "canlida gecikme".
+
+    YENI DAVRANIS: kameralar kendi kareleriyle bu motora "infer()" cagirir ve
+    BEKLER. Arka plandaki tek toplayici thread, kisa bir pencerede (varsayilan
+    25 ms) biriken butun istekleri toplar, ayni (imgsz, conf) kombinasyonuna
+    sahip olanlari TEK bir model.predict(liste) cagrisinda birlestirir ve
+    sonuclari ilgili kameralara geri dagitir. GPU boylece 8 kamerayi 8 ayri
+    cagri yerine (imgsz basina) 1 cagride isler - is yuku kamera sayisiyla
+    dogrusal degil, çok daha yavas artar.
+
+    NOT: Farkli 'mesafe' on-ayarina (yakin/normal/uzak) sahip kameralar farkli
+    imgsz/conf kullandigi icin ayri gruplarda kalir - aralarinda batching
+    olmaz, ama AYNI on-ayara sahip kameralar (cogu deployment'ta boyledir)
+    otomatik olarak ayni pakette islenir.
+    """
+
+    def __init__(self, model, wait_ms=25, max_batch=8):
+        self.model = model
+        self.wait_s = max(0.0, wait_ms) / 1000.0
+        self.max_batch = max(1, max_batch)
+        self._queue = []          # [(imgsz, conf, frame, event, holder), ...]
+        self._qlock = threading.Lock()
+        self._wake = threading.Event()
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def infer(self, frame, imgsz, conf):
+        """Bir kareyi kuyruga ekler ve sonucu (Ultralytics Results nesnesi)
+        hazir olana kadar bekler. Kameranin kendi thread'inden cagrilir."""
+        ev = threading.Event()
+        holder = {}
+        with self._qlock:
+            self._queue.append((imgsz, conf, frame, ev, holder))
+        self._wake.set()
+        ev.wait()
+        return holder["result"]
+
+    def _loop(self):
+        while True:
+            self._wake.wait()
+            if self.wait_s > 0:
+                time.sleep(self.wait_s)   # kisa pencere: baska kameralar da yetissin
+            with self._qlock:
+                batch = self._queue
+                self._queue = []
+                self._wake.clear()
+            if not batch:
+                continue
+
+            groups = {}
+            for item in batch:
+                key = (item[0], item[1])   # (imgsz, conf)
+                groups.setdefault(key, []).append(item)
+
+            for (imgsz, conf), items in groups.items():
+                for i in range(0, len(items), self.max_batch):
+                    chunk = items[i:i + self.max_batch]
+                    frames = [it[2] for it in chunk]
+                    try:
+                        if len(frames) == 1:
+                            results = [self.model.predict(
+                                frames[0], conf=conf, imgsz=imgsz, verbose=False)[0]]
+                        else:
+                            results = self.model.predict(
+                                frames, conf=conf, imgsz=imgsz, verbose=False)
+                    except Exception as e:
+                        for it in chunk:
+                            it[4]["error"] = e
+                            it[3].set()
+                        continue
+                    for it, r in zip(chunk, results):
+                        it[4]["result"] = r
+                        it[3].set()
 
 
 def _iou(a, b):
@@ -560,15 +751,34 @@ class Detector:
         self._states = defaultdict(lambda: defaultdict(PersonState))
         self._lock = threading.Lock()
 
-        # Cikarim kilidi: her kamera ayri thread'de calisiyor ve hepsi ayni
-        # model nesnesini paylasiyor. predict() olcumde thread-guvenli cikti
-        # (2 thread x 6 cikarim, sonuclar tek thread referansiyla ayni),
-        # ama 4 GB VRAM'de iki 1920'lik cikarimin ayni anda bellek ayirmasi
-        # OOM riski. GPU zaten isi sirayla yapiyor; kilit sadece tepe
-        # kullanimi duzlestirir, toplam is yukunu artirmaz.
-        self._infer_lock = threading.Lock() if d.get("inference_lock", True) \
-            else _NullLock()
+        # Cikarim: her kamera ayri thread'de calisiyor ve hepsi ayni model
+        # nesnesini paylasiyor. ESKIDEN: bir kilit (_infer_lock) sadece ayni
+        # anda BASLAMALARINI engelliyordu, GPU yine de kamera basina ayri
+        # cagri yapiyordu - kamera sayisi arttikca gecikme dogrusal artiyordu.
+        # SIMDI: BatchInferenceEngine kisa bir pencerede (batch_wait_ms)
+        # birden fazla kameranin karesini TEK cagride birlestiriyor - ayni
+        # 'mesafe' on-ayarina (dolayisiyla ayni imgsz/conf) sahip kameralar
+        # otomatik olarak aynı pakette islenir. inference_lock: false
+        # verilirse eski (kilitsiz, dogrudan) davranisa donulur - kucuk VRAM'li
+        # kartlarda batching'in getirdigi gecici bellek artisini istemeyenler
+        # icin.
+        d_batch_wait = d.get("batch_wait_ms", 25)
+        d_batch_max = d.get("batch_max_size", 8)
+        self._batch_engine = (
+            BatchInferenceEngine(self.head_model, wait_ms=d_batch_wait,
+                                 max_batch=d_batch_max)
+            if d.get("inference_lock", True) else None
+        )
+        self._infer_lock = _NullLock()
         self._last_cleanup = time.time()
+
+        # ---- ID TAKIP (kameralar arasi kimlik eslestirme) ----
+        # Panelin ust cubugundaki 'ID Takip' butonuyla acilir/kapanir.
+        # KAPALIYKEN (varsayilan) hicbir ekstra islem yapilmaz - mevcut
+        # kamera-basina #track_id davranisi degismez. Oturum bazlidir,
+        # config.yaml'a yazilmaz - panel her acilista kapali baslar.
+        self.reid = GlobalReID()
+        self.reid_enabled = False
 
         # ---- OTOMATIK KALIBRASYON ----
         # Sistem farkli bakis acilarindaki kameralara tasinacak. Piksel
@@ -738,6 +948,8 @@ class Detector:
         if now - self._last_cleanup < 60:
             return
         self._last_cleanup = now
+        with self.reid._lock:
+            self.reid._gc(now)
         for cam, st in self._states.items():
             for k in [k for k, v in st.items()
                       if now - v.last_seen > self.state_ttl]:
@@ -782,9 +994,12 @@ class Detector:
     def _detect_heads_at(self, frame, imgsz, conf=None, min_px=None):
         conf = self.head_conf if conf is None else conf
         min_px = self.min_head_px if min_px is None else min_px
-        with self._infer_lock:
-            r = self.head_model.predict(frame, conf=conf,
-                                        imgsz=imgsz, verbose=False)[0]
+        if self._batch_engine is not None:
+            r = self._batch_engine.infer(frame, imgsz, conf)
+        else:
+            with self._infer_lock:
+                r = self.head_model.predict(frame, conf=conf,
+                                            imgsz=imgsz, verbose=False)[0]
         out = []
         if r.boxes is None:
             return out
@@ -1052,6 +1267,7 @@ class Detector:
             "cls": final_cls,
             "conf": conf,
             "confirmed_helmet": st.helmet_confirmed,
+            "global_id": None,   # ID Takip aciksa process() sonunda doldurulur
         })
 
         if (final_cls == CLS_HEAD
@@ -1184,6 +1400,7 @@ class Detector:
                         "bbox": (x1, y1, x2, y2), "head_box": None,
                         "track_id": -(ptid or 999), "cls": CLS_UNKNOWN,
                         "conf": 0.0, "confirmed_helmet": False,
+                        "global_id": None,
                     })
         else:
             # ---- person_first: v2/v3 davranisi ----
@@ -1200,6 +1417,15 @@ class Detector:
                     cls, conf, hb = None, 0.0, None
                 self._register(states, tid, cls, conf, (x1, y1, x2, y2), hb,
                                now, detections, violations)
+
+        # ---- ID TAKIP: kameralar arasi kimlik eslestirme (opsiyonel) ----
+        # KAPALIYKEN (varsayilan) bu dongu hic calismaz - yukaridaki
+        # tespit/takip akisi zaten tamamlandi, buraya kadar ek maliyet yok.
+        if self.reid_enabled:
+            for d in detections:
+                if d["track_id"] > 0 and d["cls"] in (CLS_HELMET, CLS_HEAD):
+                    d["global_id"] = self.reid.global_id_for(
+                        frame, cam_id, d["track_id"], d["bbox"], now)
 
         self.last_debug = dbg
         self.last_suppressed = suppressed

@@ -84,6 +84,21 @@
        background:none;color:var(--dim);border:none;cursor:pointer;
        font-size:13px;padding:0}
   .sec-duzenle:hover{background:var(--panel3);color:var(--text)}
+  .sec-guc{flex-shrink:0;width:23px;height:23px;border-radius:5px;
+       display:flex;align-items:center;justify-content:center;
+       background:none;color:var(--dim);border:none;cursor:pointer;
+       font-size:12px;padding:0}
+  .sec-guc:hover{background:var(--panel3);color:var(--text)}
+  .sec-guc.durdur:hover{color:var(--red)}
+  .sec-guc.baslat:hover, .sec-guc.aktif-yap:hover{color:var(--green)}
+  #buyukYok{display:flex;flex-direction:column;align-items:center;gap:14px}
+  #buyukBaslatBtn{display:none}
+  .sec-guc-buyuk{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+       border-radius:6px;padding:5px 11px;font-size:12px;font-weight:600;
+       cursor:pointer;font-family:inherit;margin-left:4px}
+  .sec-guc-buyuk:hover{filter:brightness(1.2)}
+  .sec-guc-buyuk.durdur{color:var(--red);border-color:rgba(229,72,77,.35)}
+  .sec-guc-buyuk.baslat,.sec-guc-buyuk.aktif-yap{color:var(--green);border-color:rgba(63,185,80,.35)}
   .ekle-btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);
        border-radius:6px;padding:6px 12px;font-size:12.5px;font-weight:600;
        cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px}
@@ -251,6 +266,44 @@
   .k-alt{padding:13px 18px;display:flex;align-items:center;gap:10px;
          border-top:1px solid var(--line)}
 
+  /* ---- Sistem Kullanimi penceresi ---- */
+  #sistemModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);
+         z-index:250;align-items:center;justify-content:center;padding:22px}
+  #sistemModal.show{display:flex}
+  .sis-kutu{max-width:440px;width:100%;background:var(--panel);
+          border-radius:10px;border:1px solid var(--line);overflow:hidden}
+  .sis-satir{margin-bottom:14px}
+  .sis-satir:last-child{margin-bottom:0}
+  .sis-ust{display:flex;justify-content:space-between;align-items:baseline;
+       font-size:12px;color:var(--dim);margin-bottom:5px}
+  .sis-ust b{color:var(--text);font-size:12.5px}
+  .sis-bar{height:9px;border-radius:5px;background:var(--bg);
+       border:1px solid var(--line);overflow:hidden}
+  .sis-dolu{height:100%;border-radius:5px;background:var(--blue);
+       transition:width .4s ease}
+  .sis-dolu.uyari{background:#e0a020}
+  .sis-dolu.kritik{background:var(--red)}
+  .sis-alt-satir{display:flex;gap:18px;font-size:11.5px;color:var(--dim);
+       margin-top:10px;flex-wrap:wrap}
+  .sis-hata{color:var(--dim);font-size:12.5px;line-height:1.6;padding:6px 0}
+  /* ---- ayni anda calisacak kamera sayisi (Sistem penceresi ustu, sabit) ---- */
+  .sis-ayar{padding:14px 18px;border-bottom:1px solid var(--line);
+       display:flex;align-items:flex-end;gap:10px}
+  .sis-ayar-alan{flex:1}
+  .sis-ayar-alan label{display:block;font-size:11.5px;color:var(--dim);
+       text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
+  .sis-input{width:100%;background:var(--bg);border:1px solid var(--line);
+       color:var(--text);border-radius:6px;padding:8px 10px;font-size:13px;
+       font-family:inherit}
+  .sis-input:focus{outline:none;border-color:var(--blue)}
+  .sis-ayar-ipucu{color:var(--dim);font-size:11px;line-height:1.5;
+       padding:0 18px 12px;border-bottom:1px solid var(--line)}
+  .sis-ayar-durum{font-size:11.5px;color:var(--green);margin-left:8px;
+       opacity:0;transition:opacity .3s}
+  .sis-ayar-durum.show{opacity:1}
+  .dot.bekliyor{background:#e0a020}
+  .dot.kapali{background:#5a6672}
+
   /* ---- yeni ihlal bildirimi ----
      BILEREK "position:fixed" DEGIL: sabit/hesaplanan bir konum, farkli
      ekran/yazi tipi/tam ekran durumunda ust cubugun UZERINE binebiliyordu.
@@ -298,8 +351,12 @@
   <button class="bildirim-btn" id="bildirimBtn" onclick="bildirimIzniIste()">🔔 Bildirimleri Aç</button>
   <button class="ekle-btn" id="teknikBtn" onclick="teknikGorunumDegistir()"
           title="Video uzerinde kafa/kisi sayaci ve kalibrasyon degerlerini goster/gizle">🛠 Teknik Görünüm</button>
+  <button class="ekle-btn" id="idTakipBtn" onclick="idTakipDegistir()"
+          title="Bir kisi baska bir kameraya gectiginde ayni kimligi tasimaya calis (deneysel - garanti degil)">🆔 ID Takip</button>
   <button class="ekle-btn" id="tamEkranBtn" onclick="tamEkranDegistir()"
           title="Paneli tam ekran yap">⛶ Tam Ekran</button>
+  <button class="ekle-btn" onclick="sistemModalAc()"
+          title="GPU/VRAM/CPU kullanimini goster">📊 Sistem</button>
   <button class="ekle-btn" onclick="kameraModalAc()">🔗 Kamera / Link</button>
   <div class="canli-durum" id="canliDurum" title="Panelin sunucuyla baglantisi">
     <span class="cd-nokta"></span><span class="cd-yazi">Canlı</span>
@@ -333,6 +390,7 @@
       <div class="kart-b">
         <span class="dot" id="buyukDot"></span>
         <span id="buyukAd">Kamera secilmedi</span>
+        <button id="buyukGucBtn" class="sec-guc-buyuk" style="display:none"></button>
         <div class="gorunum-secici" id="gorunumSecici" style="visibility:hidden">
           <button class="gs-buton aktif" data-mod="ihlal" onclick="gorunumSec('ihlal')"
                   title="Tespit kutulari ve etiketleriyle isaretlenmis goruntu">🎯 İhlal</button>
@@ -352,10 +410,15 @@
                   title="Bu kamera icin onerilen (otomatik) hassasiyete geri don">↺</button>
         </div>
         <span style="color:var(--dim);font-weight:400;font-size:11px" id="buyukMeta"></span>
+        <button class="ekle-btn" id="buyukBuyultBtn" onclick="buyukTamEkranDegistir()"
+                title="Bu kamerayı tam ekran büyüt">🔍 Büyüt</button>
       </div>
       <div id="buyukKutu">
         <img id="buyuk">
-        <div id="buyukYok">Soldaki listeden bir kamera sec</div>
+        <div id="buyukYok">
+          <div id="buyukYokMetin">Soldaki listeden bir kamera sec</div>
+          <button id="buyukBaslatBtn" class="onay" onclick="buyukBaslatTikla()">▶ Bu Kamerayı Aktif Yap</button>
+        </div>
       </div>
     </div>
   </div>
@@ -448,6 +511,29 @@
   </div>
 </div>
 
+<div id="sistemModal" onclick="if(event.target.id==='sistemModal')sistemModalKapat()">
+  <div class="sis-kutu">
+    <div class="k-bas"><span>📊 Sistem Kullanımı</span></div>
+    <div class="sis-ayar">
+      <div class="sis-ayar-alan">
+        <label>Aynı Anda Çalışacak Kamera Sayısı</label>
+        <input type="number" id="sisMaxKamera" class="sis-input" min="0" step="1" placeholder="0 = sınırsız">
+      </div>
+      <button class="onay" onclick="sisMaxKameraKaydet()">Uygula</button>
+      <span id="sisAyarDurum" class="sis-ayar-durum">Kaydedildi ✓</span>
+    </div>
+    <div class="sis-ayar-ipucu">0 = sınırsız (tüm etkin kameralar aynı anda çalışır). Bir sayı girersen
+      sadece o kadar kamera aynı anda çalışır, geri kalanı "Sırada bekliyor" olarak listelenir.</div>
+    <div class="k-govde" id="sisGovde">
+      <div class="sis-hata">Yükleniyor...</div>
+    </div>
+    <div class="k-alt">
+      <div class="spacer"></div>
+      <button class="sade" onclick="sistemModalKapat()">Kapat</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast">
   <span id="toastYazi"></span>
   <button id="toastGeriBtn" onclick="geriAl()">Geri al</button>
@@ -467,21 +553,39 @@ function saatGuncelle(){
 setInterval(saatGuncelle,1000); saatGuncelle();
 
 /* ================= KAMERALAR ================= */
+/* Kameranin durumuna gore ⏸/▶ butonunun sinif/yazi/tiklama davranisi:
+   - elle DURDURULMUS  -> ▶ Baslat            (once oldugu gibi tekrar dener)
+   - kapasite yuzunden SIRADA -> ▶ Aktif Yap  (sirayi atlayip zorla one gecirir)
+   - calisiyor/baglanti sorunu -> ⏸ Durdur    (elle kapatir) */
+function _gucBilgisi(c){
+  if(c.durduruldu) return {cls:'baslat', title:'Baslat',
+    aksiyon:`kameraDurdurBaslat('${c.id}', false)`};
+  if(c.sirada) return {cls:'aktif-yap', title:'Aktif Yap (sırayı atla)',
+    aksiyon:`kameraAktifYap('${c.id}')`};
+  return {cls:'durdur', title:'Durdur', aksiyon:`kameraDurdurBaslat('${c.id}', true)`};
+}
 function seciciCiz(){
-  document.getElementById('secici').innerHTML = kameralar.map((c,i)=>`
+  document.getElementById('secici').innerHTML = kameralar.map((c,i)=>{
+    const g = _gucBilgisi(c);
+    return `
     <div class="sec ${c.id===secili?'aktif':''}" data-id="${c.id}"
          onclick="sec('${c.id}')" title="${c.name}">
       ${c.connected
         ? `<img src="/stream/${c.id}?genislik=260&kalite=55" alt="">`
-        : `<div class="yok">Baglanti yok</div>`}
+        : `<div class="yok">${c.durduruldu ? 'Durduruldu' : (c.sirada ? 'Sırada bekliyor' : 'Baglanti yok')}</div>`}
       <div class="sec-alt">
-        <span class="dot ${c.connected?'on':'off'}"></span>
+        <span class="dot ${c.connected?'on':(c.durduruldu?'kapali':(c.sirada?'bekliyor':'off'))}"></span>
         <span class="sec-ad">${c.name}</span>
         ${i<9?`<span class="tus">${i+1}</span>`:''}
+        <button class="sec-guc ${g.cls}" title="${g.title}"
+                onclick="event.stopPropagation();${g.aksiyon}">
+          ${g.cls==='durdur'?'&#9208;':'&#9654;'}
+        </button>
         <button class="sec-duzenle" title="Link/ad degistir"
                 onclick="event.stopPropagation();kameraModalAc('${c.id}')">&#9998;</button>
       </div>
-    </div>`).join('') + `
+    </div>`;
+  }).join('') + `
     <div class="sec-ekle" onclick="kameraModalAc()" title="Yeni kamera ekle">
       <span class="se-artı">＋</span><span>Kamera Ekle</span>
     </div>`;
@@ -496,8 +600,85 @@ function seciciGuncelle(){
     el.classList.toggle('alarm',
       !!(sonIhlal[c.id] && (simdi-sonIhlal[c.id]) < ALARM_SN*1000));
     const d = el.querySelector('.dot');
-    if(d) d.className = 'dot ' + (c.connected?'on':'off');
+    if(d) d.className = 'dot ' + (c.connected?'on':(c.durduruldu?'kapali':(c.sirada?'bekliyor':'off')));
+    const guc = el.querySelector('.sec-guc');
+    if(guc){
+      const g = _gucBilgisi(c);
+      guc.className = 'sec-guc ' + g.cls;
+      guc.title = g.title;
+      guc.innerHTML = g.cls==='durdur' ? '&#9208;' : '&#9654;';
+      guc.setAttribute('onclick', `event.stopPropagation();${g.aksiyon}`);
+    }
   });
+  const sc = kameralar.find(x=>x.id===secili);
+  if(secili){ buyukBaslatBtnGuncelle(sc); buyukGucBtnGuncelle(sc); }
+}
+async function kameraDurdurBaslat(id, durdur){
+  try{
+    await fetch(`/api/cameras/${encodeURIComponent(id)}/${durdur?'durdur':'baslat'}`, {method:'POST'});
+    await kameralariYukle();
+  }catch(e){
+    toastGoster('İşlem başarısız - bağlantı hatası.');
+  }
+}
+async function kameraAktifYap(id, onayla){
+  try{
+    const r = await fetch(`/api/cameras/${encodeURIComponent(id)}/aktif-yap`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({onayla: !!onayla})
+    });
+    const sonuc = await r.json();
+    if(sonuc.onay_gerekli){
+      // Kapasite dolu - hangi kameranin durdurulacagini SOYLEYEREK sor,
+      // kimse "diger kamera birden kapandi" diye saskina donmesin.
+      if(confirm(`Kapasite dolu. "${sonuc.durdurulacak_ad}" kamerası durdurulup yerine bu kamera aktif edilecek.\n\nDevam edilsin mi?`)){
+        await kameraAktifYap(id, true);
+      }
+      return;
+    }
+    await kameralariYukle();
+  }catch(e){
+    toastGoster('İşlem başarısız - bağlantı hatası.');
+  }
+}
+/* Ana goruntuleyicideki buyuk '▶ Bu Kamerayı Aktif Yap' butonu - sadece
+   secili kamera calismiyorken (sirada ya da elle durdurulmus) gorunur,
+   kenar cubugundaki kucuk butona alternatif olarak, tam bakarken elini
+   uzatabilecegin bir yerde dursun diye. */
+function buyukBaslatBtnGuncelle(c){
+  const btn = document.getElementById('buyukBaslatBtn');
+  if(!btn) return;
+  if(c && !c.connected && (c.sirada || c.durduruldu)){
+    btn.style.display = 'inline-block';
+    btn.textContent = c.durduruldu ? '▶ Bu Kamerayı Başlat' : '▶ Bu Kamerayı Aktif Yap (Sırayı Atla)';
+  } else {
+    btn.style.display = 'none';
+  }
+}
+/* Ust cubuktaki, HER ZAMAN gorunen kucuk Durdur/Baslat/Aktif-Yap butonu -
+   secili kamera calisirken de (Durdur) durmus/sirada iken de (Baslat/
+   Aktif Yap) ayni yerde dursun diye - kullanicinin "aktif kamerayi
+   kapatacak bir isaret de olsun" istegi buradan karsilaniyor. */
+function buyukGucBtnGuncelle(c){
+  const btn = document.getElementById('buyukGucBtn');
+  if(!btn) return;
+  if(!c){ btn.style.display = 'none'; return; }
+  const g = _gucBilgisi(c);
+  btn.style.display = 'inline-block';
+  btn.className = 'sec-guc-buyuk ' + g.cls;
+  btn.textContent = g.cls==='durdur' ? '⏸ Durdur'
+                   : g.cls==='baslat' ? '▶ Başlat' : '▶ Aktif Yap';
+  btn.onclick = () => {
+    if(g.cls==='durdur') kameraDurdurBaslat(c.id, true);
+    else if(g.cls==='baslat') kameraDurdurBaslat(c.id, false);
+    else kameraAktifYap(c.id);
+  };
+}
+function buyukBaslatTikla(){
+  const c = kameralar.find(x=>x.id===secili);
+  if(!c) return;
+  if(c.durduruldu) kameraDurdurBaslat(c.id, false);
+  else kameraAktifYap(c.id);
 }
 function sec(id){
   secili = id;
@@ -506,12 +687,18 @@ function sec(id){
   const yok = document.getElementById('buyukYok');
   document.getElementById('buyukAd').textContent = c ? c.name : '-';
   document.getElementById('buyukDot').className =
-    'dot ' + (c && c.connected ? 'on':'off');
+    'dot ' + (c && c.connected ? 'on':(c && c.durduruldu?'kapali':(c && c.sirada?'bekliyor':'off')));
+  buyukGucBtnGuncelle(c);
   if(c && c.connected){
     streamKaynagiAyarla(); img.style.display='block'; yok.style.display='none';
   }else{
-    img.removeAttribute('src'); img.style.display='none'; yok.style.display='block';
-    yok.textContent = c ? ('Baglanti yok' + (c.error? ' - '+c.error:'')) : 'Kamera yok';
+    img.removeAttribute('src'); img.style.display='none'; yok.style.display='flex';
+    document.getElementById('buyukYokMetin').textContent = c
+      ? (c.durduruldu ? 'Durduruldu'
+        : c.sirada ? 'Kapasite sınırı - sırada bekliyor'
+                  : ('Baglanti yok' + (c.error? ' - '+c.error:'')))
+      : 'Kamera yok';
+    buyukBaslatBtnGuncelle(c);
   }
   document.getElementById('hassasiyetGrup').style.visibility = c ? 'visible' : 'hidden';
   document.getElementById('gorunumSecici').style.visibility = c ? 'visible' : 'hidden';
@@ -635,6 +822,35 @@ async function teknikGorunumDegistir(){
   }
 }
 
+let idTakipAcik = false;
+function idTakipBtnGuncelle(acik){
+  idTakipAcik = acik;
+  document.getElementById('idTakipBtn').classList.toggle('acik', acik);
+}
+async function idTakipDegistir(){
+  const yeni = !idTakipAcik;
+  idTakipBtnGuncelle(yeni);   // once iyimser guncelle, akici hissetsin
+  try{
+    await fetch('/api/id-takip', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({acik: yeni})
+    });
+    toastGoster(yeni
+      ? 'ID Takip acildi - kameralar arasi kimlik eslestirmesi deneme asamasinda, garanti vermez.'
+      : 'ID Takip kapatildi - kameralar normal calisiyor.');
+  }catch(e){
+    idTakipBtnGuncelle(!yeni);   // basarisizsa geri al
+    toastGoster('Degistirilemedi - baglanti hatasi.');
+  }
+}
+async function idTakipDurumYukle(){
+  try{
+    const r = await fetch('/api/id-takip');
+    const d = await r.json();
+    idTakipBtnGuncelle(!!d.acik);
+  }catch(e){ /* sessiz gec - varsayilan kapali kalir */ }
+}
+
 function tamEkranDegistir(){
   if(!document.fullscreenElement){
     document.documentElement.requestFullscreen().catch(()=>{});
@@ -642,6 +858,27 @@ function tamEkranDegistir(){
     document.exitFullscreen();
   }
 }
+
+// Secili KAMERANIN goruntusunu tam ekran buyutur (butun paneli degil,
+// sadece video kutusunu - #buyukKutu zaten siyah zeminli/ortali oldugu
+// icin tam ekranda da duzgun gorunur).
+function buyukTamEkranDegistir(){
+  const kutu = document.getElementById('buyukKutu');
+  if(document.fullscreenElement){
+    document.exitFullscreen();
+    return;
+  }
+  kutu.requestFullscreen().catch(()=>{
+    toastGoster('Tam ekran acilamadi - tarayici desteklemiyor olabilir.');
+  });
+}
+document.addEventListener('fullscreenchange', ()=>{
+  const btn = document.getElementById('buyukBuyultBtn');
+  if(!btn) return;
+  const acik = document.fullscreenElement === document.getElementById('buyukKutu');
+  btn.textContent = acik ? '🔍 Küçült' : '🔍 Büyüt';
+  btn.classList.toggle('acik', acik);
+});
 document.addEventListener('fullscreenchange', ()=>{
   const b = document.getElementById('tamEkranBtn');
   b.textContent = document.fullscreenElement ? '⛶ Tam Ekrandan Çık' : '⛶ Tam Ekran';
@@ -718,6 +955,108 @@ async function kameraSil(){
     await kameralariYukle();
   }catch(e){
     kHataGoster('Silinemedi - baglanti hatasi.');
+  }
+}
+
+/* ================= SISTEM KULLANIMI (GPU/VRAM/CPU) ================= */
+let sisAralik = null;
+
+function sistemModalAc(){
+  document.getElementById('sistemModal').classList.add('show');
+  sistemGuncelle();                          // ilk veriyi hemen goster
+  sisMaxKameraOku();                         // mevcut kapasite sinirini kutuya yaz
+  if(sisAralik) clearInterval(sisAralik);
+  sisAralik = setInterval(sistemGuncelle, 2000);   // pencere acikken 2 sn'de bir tazele
+}
+function sistemModalKapat(){
+  document.getElementById('sistemModal').classList.remove('show');
+  if(sisAralik){ clearInterval(sisAralik); sisAralik = null; }  // kapaliyken bosuna sorgulama
+}
+async function sisMaxKameraOku(){
+  try{
+    const s = await (await fetch('/api/ayarlar/aktif-kamera-sayisi')).json();
+    document.getElementById('sisMaxKamera').value = s.sayi;
+  }catch(e){ /* sessizce gec - kutu bos kalir, kritik degil */ }
+}
+async function sisMaxKameraKaydet(){
+  const girdi = document.getElementById('sisMaxKamera');
+  const sayi = parseInt(girdi.value, 10);
+  if(isNaN(sayi) || sayi < 0){
+    toastGoster('Gecerli bir sayi gir (0 = sinirsiz)');
+    return;
+  }
+  try{
+    await fetch('/api/ayarlar/aktif-kamera-sayisi', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({sayi})
+    });
+    const durum = document.getElementById('sisAyarDurum');
+    durum.classList.add('show');
+    setTimeout(()=>durum.classList.remove('show'), 1800);
+    await kameralariYukle();     // sirada/aktif durumu sidebar'da hemen guncellensin
+  }catch(e){
+    toastGoster('Kaydedilemedi - baglanti hatasi.');
+  }
+}
+function sisBarSinif(yuzde){
+  if(yuzde >= 90) return 'kritik';
+  if(yuzde >= 75) return 'uyari';
+  return '';
+}
+async function sistemGuncelle(){
+  const govde = document.getElementById('sisGovde');
+  try{
+    const s = await (await fetch('/api/sistem')).json();
+    let html = '';
+
+    if(s.gpu && s.gpu.var && s.gpu.gpular.length){
+      s.gpu.gpular.forEach((g, i)=>{
+        const vramYuzde = Math.round(100 * g.vram_kullanilan_mb / g.vram_toplam_mb);
+        html += `
+          <div class="sis-satir">
+            <div class="sis-ust"><b>${g.ad}${s.gpu.gpular.length>1 ? ' (GPU '+i+')':''}</b>
+              <span>${g.gpu_yuzde.toFixed(0)}% kullanim</span></div>
+            <div class="sis-bar"><div class="sis-dolu ${sisBarSinif(g.gpu_yuzde)}"
+                 style="width:${g.gpu_yuzde}%"></div></div>
+          </div>
+          <div class="sis-satir">
+            <div class="sis-ust"><b>VRAM (Video Bellek)</b>
+              <span>${(g.vram_kullanilan_mb/1024).toFixed(1)} / ${(g.vram_toplam_mb/1024).toFixed(1)} GB</span></div>
+            <div class="sis-bar"><div class="sis-dolu ${sisBarSinif(vramYuzde)}"
+                 style="width:${vramYuzde}%"></div></div>
+            <div class="sis-alt-satir">
+              <span>Sicaklik: ${g.sicaklik_c.toFixed(0)}°C</span>
+              ${g.guc_w!=null ? `<span>Guc: ${g.guc_w.toFixed(0)}W${g.guc_limit_w?' / '+g.guc_limit_w.toFixed(0)+'W':''}</span>` : ''}
+            </div>
+          </div>`;
+      });
+    } else {
+      html += `<div class="sis-hata">GPU bilgisi alinamadi${s.gpu && s.gpu.hata ? ': '+s.gpu.hata : ''}.</div>`;
+    }
+
+    if(s.cpu_yuzde != null){
+      const ramYuzde = Math.round(100 * s.ram_kullanilan_gb / s.ram_toplam_gb);
+      html += `
+        <div class="sis-satir">
+          <div class="sis-ust"><b>CPU</b><span>${s.cpu_yuzde.toFixed(0)}%</span></div>
+          <div class="sis-bar"><div class="sis-dolu ${sisBarSinif(s.cpu_yuzde)}"
+               style="width:${s.cpu_yuzde}%"></div></div>
+        </div>
+        <div class="sis-satir">
+          <div class="sis-ust"><b>RAM</b>
+            <span>${s.ram_kullanilan_gb} / ${s.ram_toplam_gb} GB</span></div>
+          <div class="sis-bar"><div class="sis-dolu ${sisBarSinif(ramYuzde)}"
+               style="width:${ramYuzde}%"></div></div>
+        </div>`;
+    }
+
+    html += `<div class="sis-alt-satir">
+        <span>Kamera: ${s.kamera_aktif} / ${s.kamera_toplam} aktif</span>
+      </div>`;
+
+    govde.innerHTML = html;
+  }catch(e){
+    govde.innerHTML = '<div class="sis-hata">Sunucuya ulasilamadi.</div>';
   }
 }
 
@@ -1061,7 +1400,7 @@ function bannerTiklandi(){
 
 if('Notification' in window) izinDurumuGuncelle(Notification.permission);
 
-kameralariYukle(); sayilariYukle(); kuyrukYukle();
+kameralariYukle(); sayilariYukle(); kuyrukYukle(); idTakipDurumYukle();
 setInterval(kameralariYukle, 4000);
 setInterval(sayilariYukle, 5000);
 setInterval(()=>{ if(!acikKayit) kuyrukYukle(); }, 5000);

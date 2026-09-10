@@ -227,6 +227,8 @@ class CameraWorker(threading.Thread):
                 lab += "*"          # baret hafizasindan geliyor
             if d["track_id"] > 0:
                 lab += f" #{d['track_id']}"
+            if d.get("global_id"):
+                lab += f" [G{d['global_id']}]"   # ID Takip acikken kameralar arasi kimlik
 
             (tw, th), _ = cv2.getTextSize(lab, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
             cv2.rectangle(img, (x1, y1 - th - 7), (x1 + tw + 6, y1), col, -1)
