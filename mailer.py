@@ -5,10 +5,19 @@ Panelin ana akisini YAVASLATMAMASI icin, mail gonderme islemi HER ZAMAN
 ayri bir thread'de (arka planda) yapilir - SMTP sunucusu yavas cevap
 verse/cevap vermese bile kamera isleme thread'i beklemez.
 
-Ayni kameradan arka arkaya cok fazla mail gitmesini (mesela test videosu
-oynatilirken 130+ ihlal birikmisken hepsi icin tek tek mail atilmasin diye)
-engellemek icin kamera basina basit bir "en az N saniyede bir" kisitlamasi
-var - config.yaml -> email -> min_seconds_between.
+IKI AYRI "spam onleme" kurali var:
+
+1) AYNI KISI icin tekrar mail (asil istenen kural): Bir kisi baretsiz
+   tespit edilip mail gittikten sonra, O KISI (ayni kamera + ayni izleme
+   numarasi/track_id) hala baretsiz gorunmeye devam etse bile - mesela
+   2-3 dakika boyunca kamerada dursa - tekrar tekrar mail atilmaz. Sadece
+   config.yaml -> email -> min_seconds_between_person kadar sure gectikten
+   sonra (kisi hala baretsizse) bir mail daha gidebilir.
+
+2) AYNI KAMERA icin genel bir alt limit (guvenlik): Ayni kameradan COK
+   KISA arayla (mesela ayni anda 2 farkli kisi baretsiz yakalanirsa) mail
+   sel gibi gitmesin diye kucuk bir alt sinir - config.yaml -> email ->
+   min_seconds_between.
 """
 
 import smtplib
@@ -18,11 +27,25 @@ import time
 from email.message import EmailMessage
 from pathlib import Path
 
-_son_gonderilen = {}   # cam_id -> son mail zamani (epoch saniye)
+_son_gonderilen_kisi = {}    # (cam_id, track_id) -> son mail zamani (epoch saniye)
+_son_gonderilen_kamera = {}  # cam_id -> son mail zamani (epoch saniye)
 _lock = threading.Lock()
 
+# _son_gonderilen_kisi sozlugu zamanla eski (artik kamerada olmayan)
+# izleme numaralariyla dolup buyumesin diye, bu sureden (saniye) eski
+# kayitlar firsat buldukca temizlenir. Fonksiyonellige etkisi yok, sadece
+# bellek temizligi.
+_TEMIZLIK_ESIGI_SN = 3600
 
-def _gonder(cfg_email, konu, govde, resim_yolu):
+
+def _eski_kayitlari_temizle(now):
+    eskiler = [k for k, t in _son_gonderilen_kisi.items()
+               if now - t > _TEMIZLIK_ESIGI_SN]
+    for k in eskiler:
+        del _son_gonderilen_kisi[k]
+
+
+def _gonder(cfg_email, konu, govde, kucuk_resim_yolu, buyuk_resim_yolu):
     try:
         msg = EmailMessage()
         msg["Subject"] = konu
@@ -37,10 +60,15 @@ def _gonder(cfg_email, konu, govde, resim_yolu):
         msg["To"] = ", ".join(alicilar)
         msg.set_content(govde)
 
-        if resim_yolu and Path(resim_yolu).exists():
-            data = Path(resim_yolu).read_bytes()
-            msg.add_attachment(data, maintype="image", subtype="jpeg",
-                                filename=Path(resim_yolu).name)
+        # Iki resim de eklenir (varsa): yakin cekim (kirpilmis) VE genel/
+        # buyuk goruntu (tum kare). Boylece yonetici hem kisiyi yakindan
+        # hem de olay yerini/baglami genel olarak gorebilir.
+        for yol, ek_adi in ((kucuk_resim_yolu, "yakin_cekim.jpg"),
+                             (buyuk_resim_yolu, "genel_gorunum.jpg")):
+            if yol and Path(yol).exists():
+                data = Path(yol).read_bytes()
+                msg.add_attachment(data, maintype="image", subtype="jpeg",
+                                    filename=ek_adi)
 
         host = cfg_email.get("smtp_host", "smtp.gmail.com")
         port = int(cfg_email.get("smtp_port", 587))
@@ -59,7 +87,8 @@ def _gonder(cfg_email, konu, govde, resim_yolu):
         print(f"[mail] HATA: {e}")
 
 
-def ihlal_maili_gonder(cfg, cam_id, cam_name, track_id, conf, when, resim_yolu):
+def ihlal_maili_gonder(cfg, cam_id, cam_name, track_id, conf, when,
+                        kucuk_resim_yolu=None, buyuk_resim_yolu=None):
     """CameraWorker._log() bunu her ihlalde cagirir. cfg: TUM config.yaml
     (dict). Ayarlar cfg['email'] altinda - 'enabled: false' ise (varsayilan)
     hicbir sey yapmadan aninda geri doner."""
@@ -75,13 +104,31 @@ def ihlal_maili_gonder(cfg, cam_id, cam_name, track_id, conf, when, resim_yolu):
         print(f"[mail] atlandi (guven %{round(conf*100)} < esik %{round(min_conf*100)}) - {cam_name}")
         return
 
-    bekleme = float(e.get("min_seconds_between", 60))
+    kisi_bekleme = float(e.get("min_seconds_between_person", 600))
+    kamera_bekleme = float(e.get("min_seconds_between", 15))
     now = time.time()
+
     with _lock:
-        son = _son_gonderilen.get(cam_id, 0)
-        if now - son < bekleme:
-            return   # bu kamera icin cok yakin zamanda zaten mail gitti
-        _son_gonderilen[cam_id] = now
+        _eski_kayitlari_temizle(now)
+
+        kisi_anahtar = (cam_id, track_id)
+        son_kisi = _son_gonderilen_kisi.get(kisi_anahtar, 0)
+        if now - son_kisi < kisi_bekleme:
+            # Ayni kisi (ayni kamera + ayni izleme numarasi) icin, hala
+            # baretsiz gorunse bile bu bekleme suresi dolmadan tekrar
+            # mail atilmaz - surekli baretsiz durmasi mail trafigini
+            # bogmasin diye.
+            return
+
+        son_kamera = _son_gonderilen_kamera.get(cam_id, 0)
+        if now - son_kamera < kamera_bekleme:
+            # Ayni kameradan COK KISA arayla (mesela ayni anda farkli bir
+            # kisi de yakalanirsa) art arda mail gitmesin diye kucuk bir
+            # genel alt limit.
+            return
+
+        _son_gonderilen_kisi[kisi_anahtar] = now
+        _son_gonderilen_kamera[cam_id] = now
 
     konu = f"⚠ Baret İhlali - {cam_name}"
     govde = (
@@ -91,10 +138,11 @@ def ihlal_maili_gonder(cfg, cam_id, cam_name, track_id, conf, when, resim_yolu):
         f"Saat: {when.strftime('%H:%M:%S')}\n"
         f"Takip No: #{track_id}\n"
         f"Güven skoru: %{round(conf * 100)}\n\n"
-        f"Görüntü ektedir (varsa).\n"
+        f"Görüntüler ektedir (yakın çekim + genel görünüm, varsa).\n"
         f"Bu mail Baret Tespit Sistemi tarafından otomatik gönderilmiştir."
     )
     # SMTP baglantisi/gonderim yavas olabilir - kamera thread'ini asla
     # bloklamasin diye tamamen ayri bir arka plan thread'inde yapilir.
-    threading.Thread(target=_gonder, args=(e, konu, govde, resim_yolu),
+    threading.Thread(target=_gonder,
+                      args=(e, konu, govde, kucuk_resim_yolu, buyuk_resim_yolu),
                       daemon=True).start()

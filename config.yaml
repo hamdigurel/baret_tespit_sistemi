@@ -210,10 +210,20 @@ email:
   smtp_pass: "pejz iuyh zxot uwyk"
   to:
     - "hamdigurel50@gmail.com"   # ihlal mailinin gidecegi adres (yoneticinin maili)
-  # Ayni kameradan arka arkaya mail spam'ini onlemek icin: bir kamera
-  # icin mail gittikten sonra en az bu kadar saniye gecmeden o kameradan
-  # bir daha mail gitmez (farkli kameralar birbirini etkilemez).
-  min_seconds_between: 60
+  # ASIL SPAM ONLEME KURALI: Bir kisi (ayni kamera + ayni izleme numarasi)
+  # baretsiz tespit edilip mail gittikten sonra, O KISI kamerada dursa/
+  # dolassa bile (mesela 2-3 dakika boyunca hala baretsiz gorunse bile)
+  # bu kadar saniye gecmeden AYNI KISI icin bir daha mail gitmez. Mail
+  # trafiginin bogulmamasi icin eklendi (10 dakika = 600 saniye).
+  # Dusurursen ayni kisi icin daha sik hatirlatma maili gelir, artirirsan
+  # daha seyrek gelir.
+  min_seconds_between_person: 600
+  # Ayni kameradan COK KISA arayla (mesela tam ayni anda 2 FARKLI kisi
+  # baretsiz yakalanirsa) mail sel gibi gitmesin diye kucuk bir genel alt
+  # limit - yukaridaki "ayni kisi" kuralindan BAGIMSIZ, farkli kisiler
+  # icin de gecerli olan ekstra bir guvenlik siniri (farkli kameralar
+  # birbirini etkilemez).
+  min_seconds_between: 15
   # DUSUK GUVENLI (sinirda/riskli) tespitler icin mail GITMESIN diye ayri
   # bir esik. Panelin kendi ihlal esigi (violation_min_conf, asagida) ile
   # KARISTIRMA: o esigin altindaki hicbir sey zaten ihlal bile sayilmiyor.

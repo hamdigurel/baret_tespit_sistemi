@@ -314,10 +314,13 @@ class CameraWorker(threading.Thread):
         # Yonetici istegi: ihlal tespit edilince mail git (kisi/saat/gun/
         # kamera bilgisiyle). config.yaml -> email -> enabled: false ise
         # (varsayilan) bu satir hicbir sey yapmaz, aninda geri doner.
-        resim = crop or snap
-        resim_yolu = str(self.snap_dir / resim) if resim else None
+        # Iki resim de gonderilir: yakin cekim (crop) VE genel/buyuk
+        # goruntu (snap/full kare) - ikisi de varsa.
+        crop_yolu = str(self.snap_dir / crop) if crop else None
+        snap_yolu = str(self.snap_dir / snap) if snap else None
         ihlal_maili_gonder(self.cfg, self.cam_id, self.cam_name,
-                           v["track_id"], v["conf"], datetime.now(), resim_yolu)
+                           v["track_id"], v["conf"], datetime.now(),
+                           kucuk_resim_yolu=crop_yolu, buyuk_resim_yolu=snap_yolu)
 
     def get_jpeg(self, quality=70, width=None, ham=False):
         """width verilirse kucultulmus kare doner.
