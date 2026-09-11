@@ -81,14 +81,14 @@
        padding:0 5px;font-size:10px}
   .sec-duzenle{flex-shrink:0;width:23px;height:23px;border-radius:5px;
        display:flex;align-items:center;justify-content:center;
-       background:none;color:var(--dim);border:none;cursor:pointer;
-       font-size:13px;padding:0}
-  .sec-duzenle:hover{background:var(--panel3);color:var(--text)}
+       background:var(--panel3);color:var(--text);border:1px solid var(--line);
+       cursor:pointer;font-size:14px;padding:0}
+  .sec-duzenle:hover{background:var(--blue);border-color:var(--blue);color:#fff}
   .sec-guc{flex-shrink:0;width:23px;height:23px;border-radius:5px;
        display:flex;align-items:center;justify-content:center;
-       background:none;color:var(--dim);border:none;cursor:pointer;
-       font-size:12px;padding:0}
-  .sec-guc:hover{background:var(--panel3);color:var(--text)}
+       background:var(--panel3);color:var(--text);border:1px solid var(--line);
+       cursor:pointer;font-size:12px;padding:0}
+  .sec-guc:hover{background:var(--panel3);color:var(--text);filter:brightness(1.3)}
   .sec-guc.durdur:hover{color:var(--red)}
   .sec-guc.baslat:hover, .sec-guc.aktif-yap:hover{color:var(--green)}
   #buyukYok{display:flex;flex-direction:column;align-items:center;gap:14px}
@@ -412,6 +412,8 @@
         <span style="color:var(--dim);font-weight:400;font-size:11px" id="buyukMeta"></span>
         <button class="ekle-btn" id="buyukBuyultBtn" onclick="buyukTamEkranDegistir()"
                 title="Bu kamerayı tam ekran büyüt">🔍 Büyüt</button>
+        <button class="ekle-btn" id="buyukSilBtn" style="display:none"
+                onclick="buyukDuzenle()" title="Şu an açık olan bu kameranın adını/linkini değiştir ya da sil">✎ Kamerayı Düzenle</button>
       </div>
       <div id="buyukKutu">
         <img id="buyuk">
@@ -689,6 +691,7 @@ function sec(id){
   document.getElementById('buyukDot').className =
     'dot ' + (c && c.connected ? 'on':(c && c.durduruldu?'kapali':(c && c.sirada?'bekliyor':'off')));
   buyukGucBtnGuncelle(c);
+  document.getElementById('buyukSilBtn').style.display = c ? '' : 'none';
   if(c && c.connected){
     streamKaynagiAyarla(); img.style.display='block'; yok.style.display='none';
   }else{
@@ -956,6 +959,16 @@ async function kameraSil(){
   }catch(e){
     kHataGoster('Silinemedi - baglanti hatasi.');
   }
+}
+
+// Buyuk (secili) goruntunun ustundeki "✎ Kamerayi Duzenle" butonu -
+// sidebar'daki kucuk kalem simgesini bulamayan/gormeyen kullanicilar icin
+// dogrudan erisim. Ayni "Kamera / Link" penceresini acar - orada hem
+// ad/link degistirilebilir hem de alttaki kirmizi "Kamerayi Sil" butonuyla
+// silinebilir (kamera aktif/calisiyor olsa bile).
+function buyukDuzenle(){
+  if(!secili) return;
+  kameraModalAc(secili);
 }
 
 /* ================= SISTEM KULLANIMI (GPU/VRAM/CPU) ================= */

@@ -41,61 +41,79 @@ cameras:
 - id: dis-depo
   name: Dış Depo
   url: /app/goruntuler/Dış depo.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: hangar-giris
   name: Hangar Giriş
   url: /app/goruntuler/Hangar giriş.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: hangar-giris-2
   name: Hangar Giriş 2
   url: /app/goruntuler/Hangar giriş 2.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: hurdalik
   name: Hurdalık
   url: /app/goruntuler/Hurdalık.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: ic-arka-orta
   name: İç Arka Orta
   url: /app/goruntuler/İç arka orta.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: ic-arka-sag
   name: İç Arka Sağ
   url: /app/goruntuler/İç arka sağ.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: ic-arka-sag-2
   name: İç Arka Sağ 2
   url: /app/goruntuler/İç arka sağ2.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: ic-on-sag
   name: İç Ön Sağ
   url: /app/goruntuler/İç ön sağ.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: ic-on-sag-2
   name: İç Ön Sağ 2
   url: /app/goruntuler/İç ön sağ 2.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: ic-on-sol
   name: İç Ön Sol
   url: /app/goruntuler/İç Ön Sol.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: ic-on-sol-2
   name: İç Ön Sol 2
   url: /app/goruntuler/İç ön sol 2.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: on-orta
   name: Ön Orta
   url: /app/goruntuler/On Orta.mp4
+  enabled: false
+  mesafe: normal
+# Yeni eklenen test videolari (goruntuler klasorune sonradan konuldu) -
+# denemek icin 3 tanesi eklendi, geri kalanlar (yeni_video3/4/5/6.mp4)
+# istenirse ayni sekilde eklenebilir.
+- id: yeni-1
+  name: Yeni Kamera 1
+  url: /app/goruntuler/yeni_video.mp4
+  enabled: true
+  mesafe: normal
+- id: yeni-2
+  name: Yeni Kamera 2
+  url: /app/goruntuler/yeni_video1.mp4
+  enabled: true
+  mesafe: normal
+- id: yeni-3
+  name: Yeni Kamera 3
+  url: /app/goruntuler/yeni_video2.mp4
   enabled: true
   mesafe: normal
 detection:
@@ -150,7 +168,16 @@ detection:
   helmet_revoke_frames: 4
   log_helmet_revoke: true
   confirm_frames: 3
-  violation_min_conf: 0.3
+  # ONEMLI: bu deger, bir "baretsiz" tespitinin IHLAL SAYILIP SAYILMAYACAGINI
+  # belirler (0.3 -> 0.45 yukseltildi). Bunun altindaki guven skoruna sahip
+  # tespitler artik HIC IHLAL OLARAK KAYDEDILMEZ - ne panelde "Inceleme
+  # Bekleyen"e duser ne de mail gider. Cok uzak/sisli/bulanik goruntude
+  # modelin dusuk guvenle ("%30" gibi) yanlislikla baretsiz sandigi durumlar
+  # icin eklendi. DIKKAT: gercekten uzak bir kamerada gercek bir ihlal de
+  # dusuk guvenle tespit edilebilir - bu esik cok yukseltilirse gercek
+  # ihlaller de kacabilir. Yanlis alarm hala cok geliyorsa biraz daha
+  # yukselt (orn. 0.5); gercek ihlaller kaciyor gibiyse biraz dusur.
+  violation_min_conf: 0.45
   cooldown_seconds: 90
   state_ttl_seconds: 300
   show_unmatched_person: true
@@ -166,3 +193,34 @@ web:
   port: 8000
   live_view: true
   stream_quality: 70
+# IHLAL MAIL BILDIRIMI - yonetici istegi: ihlal tespit edildiginde mail
+# gitsin (kamera, tarih, saat, foto). VARSAYILAN KAPALI (enabled: false) -
+# once alttaki bilgileri doldurup deneyerek acmani oneririm, yoksa su anki
+# test videolarindaki YUZLERCE birikmis ihlal icin (min_seconds_between
+# kadar araliklarla) mail gitmeye baslar.
+email:
+  enabled: true
+  smtp_host: smtp.gmail.com
+  smtp_port: 587
+  # Gonderen Gmail adresi. NOT: buraya normal Gmail sifreni DEGIL, Google
+  # hesabinda 2 adimli dogrulamayi actiktan sonra
+  # https://myaccount.google.com/apppasswords adresinden olusturacagin
+  # 16 haneli "uygulama sifresi"ni yazmalisin.
+  smtp_user: "tespitsistemibaret@gmail.com"
+  smtp_pass: "pejz iuyh zxot uwyk"
+  to:
+    - "hamdigurel50@gmail.com"   # ihlal mailinin gidecegi adres (yoneticinin maili)
+  # Ayni kameradan arka arkaya mail spam'ini onlemek icin: bir kamera
+  # icin mail gittikten sonra en az bu kadar saniye gecmeden o kameradan
+  # bir daha mail gitmez (farkli kameralar birbirini etkilemez).
+  min_seconds_between: 60
+  # DUSUK GUVENLI (sinirda/riskli) tespitler icin mail GITMESIN diye ayri
+  # bir esik. Panelin kendi ihlal esigi (violation_min_conf, asagida) ile
+  # KARISTIRMA: o esigin altindaki hicbir sey zaten ihlal bile sayilmiyor.
+  # Bu esik SADECE MAIL icin - ihlal panelde "Inceleme Bekleyen"e YINE
+  # duser (hicbir kayit kaybolmaz), sadece guven skoru bunun altindaysa
+  # mail atlanir. Ornek: biri %30 guvenle yanlislikla baretsiz sanilirsa
+  # (asiri sisli/uzak goruntu gibi) mail GITMEZ ama panelde gorup elle
+  # kontrol edebilirsin. Daha az yanlis-alarm maili istersen yukselt (orn.
+  # 0.6), daha hicbir ihlali kacirmak istemiyorsan dusur (orn. 0.3).
+  min_confidence: 0.5

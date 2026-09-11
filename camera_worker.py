@@ -19,6 +19,7 @@ os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS",
 import cv2  # noqa: E402
 
 from detector import CLS_HEAD, CLS_HELMET, CLS_UNKNOWN
+from mailer import ihlal_maili_gonder
 
 COLORS = {CLS_HELMET: (0, 200, 0), CLS_HEAD: (0, 0, 255),
           CLS_UNKNOWN: (140, 140, 140)}
@@ -309,6 +310,14 @@ class CameraWorker(threading.Thread):
             track_id=v["track_id"], confidence=round(v["conf"], 3),
             snapshot=snap, crop=crop, bbox=f"{x1},{y1},{x2},{y2}")
         print(f"[{self.cam_id}] IHLAL  track={v['track_id']}  conf={v['conf']:.2f}")
+
+        # Yonetici istegi: ihlal tespit edilince mail git (kisi/saat/gun/
+        # kamera bilgisiyle). config.yaml -> email -> enabled: false ise
+        # (varsayilan) bu satir hicbir sey yapmaz, aninda geri doner.
+        resim = crop or snap
+        resim_yolu = str(self.snap_dir / resim) if resim else None
+        ihlal_maili_gonder(self.cfg, self.cam_id, self.cam_name,
+                           v["track_id"], v["conf"], datetime.now(), resim_yolu)
 
     def get_jpeg(self, quality=70, width=None, ham=False):
         """width verilirse kucultulmus kare doner.

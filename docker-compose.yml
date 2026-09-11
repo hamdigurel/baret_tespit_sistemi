@@ -1,5 +1,11 @@
 # KULLANIM:
-#   docker compose up -d --build     -> derle + arka planda baslat
+#   docker compose up -d --build     -> derle + arka planda baslat (SADECE
+#                                        requirements.txt/Dockerfile
+#                                        degisince gerekir)
+#   docker compose restart           -> hizli yeniden baslat (panel.py,
+#                                        detector.py, camera_worker.py,
+#                                        static/ degisince YETERLI - asagidaki
+#                                        mount'lar sayesinde rebuild gerekmez)
 #   docker compose logs -f           -> canli log izle
 #   docker compose down              -> durdur
 #
@@ -9,10 +15,15 @@
 #
 # VOLUME'LER (disaridan baglanan dosya/klasorler): buradaki her satir,
 # konteyner icindeki bir yolu, BU BILGISAYARDAKI gercek dosya/klasore
-# baglar. Yani config.yaml'i panelden degistirdiginde ya da
-# ince_ayar.py yeni bir model urettiginde, konteyneri YENIDEN DERLEMEN
-# GEREKMEZ - sadece "docker compose restart" yeterli (config.yaml
-# sadece acilista okunuyor, hatirlarsan).
+# baglar - yani buradaki dosyalardan biri BU BILGISAYARDA degisince,
+# konteynerin icindeki kopya da AYNI ANDA degismis olur (Docker imaji
+# YENIDEN DERLENMEDEN). Kod dosyalari (panel.py/detector.py/camera_worker.py)
+# Python tarafindan sadece baslangicta belleğe okundugu icin degisiklik
+# gormek istersen yine de "docker compose restart" gerekir (rebuild DEGIL -
+# saniyeler surer). static/ klasoru ise HER ISTEKTE diskten okunuyor - o
+# yuzden static/index.html degisince tarayiciyi yenilemen bile yeterli,
+# restart'a bile gerek yok. config.yaml da restart ile yeterli (sadece
+# acilista okunuyor).
 
 services:
   baret-panel:
@@ -25,6 +36,12 @@ services:
       - "8000:8000"
     volumes:
       - ./config.yaml:/app/config.yaml
+      - ./panel.py:/app/panel.py
+      - ./detector.py:/app/detector.py
+      - ./camera_worker.py:/app/camera_worker.py
+      - ./database.py:/app/database.py
+      - ./mailer.py:/app/mailer.py
+      - ./static:/app/static
       - ./models:/app/models
       - ./ihlaller:/app/ihlaller
       - ./ihlaller.db:/app/ihlaller.db
