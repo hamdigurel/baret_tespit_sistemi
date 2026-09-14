@@ -288,6 +288,7 @@ class CameraWorker(threading.Thread):
         x1, y1, x2, y2 = v["bbox"]
 
         snap = crop = None
+        kirpilmis_dizi = None   # mail sisteminin "ayni kisi mi" kiyaslamasi icin
         if self.snap_mode in ("full", "both"):
             snap = f"{base}_full.jpg"
             cv2.imwrite(str(self.snap_dir / snap), annotated,
@@ -304,6 +305,7 @@ class CameraWorker(threading.Thread):
                 crop = f"{base}_crop.jpg"
                 cv2.imwrite(str(self.snap_dir / crop), c,
                             [cv2.IMWRITE_JPEG_QUALITY, 92])
+                kirpilmis_dizi = c
 
         self.db.add_violation(
             camera_id=self.cam_id, camera_name=self.cam_name,
@@ -320,6 +322,7 @@ class CameraWorker(threading.Thread):
         snap_yolu = str(self.snap_dir / snap) if snap else None
         ihlal_maili_gonder(self.cfg, self.cam_id, self.cam_name,
                            v["track_id"], v["conf"], datetime.now(),
+                           kirpilmis_dizi=kirpilmis_dizi,
                            kucuk_resim_yolu=crop_yolu, buyuk_resim_yolu=snap_yolu)
 
     def get_jpeg(self, quality=70, width=None, ham=False):
