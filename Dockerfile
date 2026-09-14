@@ -21,9 +21,14 @@ FROM pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
 WORKDIR /app
 
 # OpenCV (opencv-python, headless olmayan surum) bu sistem
-# kutuphaneleri olmadan calismaz. ffmpeg RTSP/video okumak icin.
+# kutuphaneleri olmadan calismaz. ffmpeg RTSP/video okumak icin. tzdata:
+# docker-compose.yml'deki "TZ=Europe/Istanbul" ayarinin gercekten ISE
+# YARAMASI icin gerekli - bu paket olmadan imaj hangi saat dilimlerinin
+# var oldugunu bilmez, TZ ayari sessizce yok sayilip UTC kullanilmaya
+# devam edilir (panelde/loglarda saatler Turkiye saatinden 3 saat geri
+# kalir).
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 libglib2.0-0 libsm6 libxext6 ffmpeg \
+    libgl1 libglib2.0-0 libsm6 libxext6 ffmpeg tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

@@ -24,7 +24,7 @@ cameras:
 - id: dis-depo
   name: Dış Depo
   url: /app/goruntuler/Dış depo.mp4
-  enabled: false
+  enabled: true
   mesafe: normal
 - id: hangar-giris
   name: Hangar Giriş
@@ -89,7 +89,7 @@ cameras:
 - id: yeni-2
   name: Yeni Kamera 2
   url: /app/goruntuler/yeni_video1.mp4
-  enabled: true
+  enabled: false
   mesafe: normal
 - id: yeni-3
   name: Yeni Kamera 3

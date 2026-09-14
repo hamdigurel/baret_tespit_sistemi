@@ -32,6 +32,15 @@ services:
     container_name: baret-panel
     gpus: all
     restart: unless-stopped
+    # SAAT DILIMI: Docker konteynerleri VARSAYILAN OLARAK UTC (evrensel
+    # saat) kullanir, Windows'un kendi saat dilimini (Turkiye, UTC+3)
+    # OTOMATIK ALMAZ. Bu satir olmadan panelde/loglarda/ihlal kayitlarinda
+    # gorunen TUM saatler gercek Turkiye saatinden 3 saat GERI olur (orn.
+    # gercekte 10:51 iken panelde 07:51 yazar) - fark degil, GECIKME degil,
+    # sadece yanlis saat dilimi. TZ=Europe/Istanbul ile konteyner icindeki
+    # Python (datetime.now()) artik doğru yerel saati kullanir.
+    environment:
+      - TZ=Europe/Istanbul
     ports:
       - "8000:8000"
     volumes:

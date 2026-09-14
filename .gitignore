@@ -5,7 +5,9 @@ __pycache__/
 .venv/
 venv/
 
-# Model agirliklari Git LFS ile takip ediliyor (bkz. .gitattributes)
+# Buyuk model agirliklari (GitHub 100MB limiti + repo boyutu icin haric)
+models/
+*.pt
 
 # Test videolari (buyuk, video_test7.mp4 ~324MB > GitHub limiti)
 test_videolari/
@@ -14,6 +16,11 @@ test_videolari/
 # Calisma zamani verisi / durum
 ihlaller.db
 ihlaller/
+
+# ICINDE GERCEK GMAIL SIFRESI (uygulama sifresi) var - GIT'E ASLA
+# GIRMEMELI. Ileride bir git deposu baslatilirsa (git init) bu satir
+# olmadan sifre GitHub/GitLab gecmisine kalici olarak islenir.
+config.yaml
 
 # Egitim ile ilgili buyuk klasorler
 dataset/
