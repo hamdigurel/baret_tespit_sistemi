@@ -1,3 +1,11 @@
+# URETIM MAKINESI: 12GB VRAM'lik GPU. Bu kart tum 12 kamerayi ayni anda
+# guvenle kaldirabilecek seviyede oldugu icin sinir kaldirildi (0 = sinirsiz).
+# Panel acikken "Sistem" penceresinden VRAM kullanimini izlemeye devam et -
+# eger VRAM dolmaya baslarsa (baska yazilimlar da ayni karti paylasiyorsa
+# ya da ileride kamera sayisi artarsa) burayi tekrar bir sayiya (orn. 8-10)
+# cekip kapasiteyi sinirlayabilirsin - kod tarafinda baska hicbir sey
+# degismez, "sirada" bekleyen kameralar otomatik devreye girer.
+# (Eski 4GB'lik test laptopunda bu deger 3 idi - orada VRAM yetersizdi.)
 max_aktif_kamera: 0
 model:
   mode: head_first
@@ -21,82 +29,111 @@ model:
   sahi_postprocess_metric: IOU
   sahi_postprocess_threshold: 0.45
 cameras:
-- id: dis-depo
-  name: Dış Depo
-  url: /app/goruntuler/Dış depo.mp4
+# DOCKER YOLLARI: konteyner icinde bu videolar "/app/goruntuler/..." olarak
+# gorunuyor (bkz. docker-compose.yml -> volumes). Bu, Windows'taki gercek
+# "goruntuler" klasorunu ":ro" (salt okunur) olarak konteynerin icine
+# baglayan bir "mount". ONEMLI: klasor adi ASCII olmali (goruntuler, "ö/ü"
+# OLMADAN) - Docker Desktop'in Windows<->WSL2 yol donusumu Turkce
+# karakterli klasor adlarinda calismiyor ("Baglanti yok" / mount hatasi
+# veriyor). Yani Desktop'taki "görüntüler" klasorunu BIR KERE "goruntuler"
+# olarak yeniden adlandirman gerekiyor (icindeki dosya adlarina dokunma,
+# onlar boyle kalabilir) - bkz. sohbetteki adim adim talimat.
+#
+# NOT: eski 12 test-video kamerasi (Dis Depo, Hangar Giris vb.) BILEREK
+# SILINDI - gercek RTSP kameralara (asagidaki yeni-1..yeni-14) tamamen
+# gecildigi icin artik gereksizdi, sadece panelde pasif kamera kalabaligi
+# yapiyorlardi. O eski mp4 dosyalari "goruntuler" klasorunde hala duruyor,
+# istenirse ileride ayni sekilde tekrar eklenebilir.
+- id: kamera1
+  name: Dış hurdalık 2
+  url: rtsp://admin:123uz789@192.168.1.165:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: uzak
+- id: kamera2
+  name: İç arka orta
+  url: rtsp://admin:123uz789@192.168.1.166:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera3
+  name: İç ön sol
+  url: rtsp://admin:123uz789@192.168.1.168:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera4
+  name: İç arka sağ 2
+  url: rtsp://admin:123uz789@192.168.1.169:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera5
+  name: İç ön sağ 2
+  url: rtsp://admin:123uz789@192.168.1.170:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera6
+  name: Dış Hangar önü
+  url: rtsp://admin:123uz789@192.168.1.179:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: uzak
+- id: kamera7
+  name: Dış Hangar önü 1
+  url: rtsp://admin:123uz789@192.168.1.180:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: uzak
+- id: kamera8
+  name: Dış hurdalık
+  url: rtsp://admin:123uz789@192.168.1.182:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: uzak
+- id: kamera9
+  name: Dış depo
+  url: rtsp://admin:123uz789@192.168.1.183:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: uzak
+- id: kamera10
+  name: Dış
+  url: rtsp://admin:123uz789@192.168.1.184:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: uzak
+- id: kamera11
+  name: İç arka sağ
+  url: rtsp://admin:123uz789@192.168.1.185:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera12
+  name: İç arka sol
+  url: rtsp://admin:123uz789@192.168.1.186:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera13
+  name: İç ön sağ
+  url: rtsp://admin:123uz789@192.168.1.187:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera14
+  name: İç ön orta
+  url: rtsp://admin:123uz789@192.168.1.188:554/cam/realmonitor?channel=1&subtype=0
+  enabled: false
+  mesafe: normal
+- id: kamera15
+  name: Yeni video
+  url: /app/goruntuler/yeni_video.mp4
   enabled: true
   mesafe: normal
-- id: hangar-giris
-  name: Hangar Giriş
-  url: /app/goruntuler/Hangar giriş.mp4
-  enabled: false
-  mesafe: normal
-- id: hangar-giris-2
-  name: Hangar Giriş 2
-  url: /app/goruntuler/Hangar giriş 2.mp4
-  enabled: false
-  mesafe: normal
-- id: hurdalik
-  name: Hurdalık
-  url: /app/goruntuler/Hurdalık.mp4
-  enabled: false
-  mesafe: normal
-- id: ic-arka-orta
-  name: İç Arka Orta
-  url: /app/goruntuler/İç arka orta.mp4
-  enabled: false
-  mesafe: normal
-- id: ic-arka-sag
-  name: İç Arka Sağ
-  url: /app/goruntuler/İç arka sağ.mp4
-  enabled: false
-  mesafe: normal
-- id: ic-arka-sag-2
-  name: İç Arka Sağ 2
-  url: /app/goruntuler/İç arka sağ2.mp4
-  enabled: false
-  mesafe: normal
-- id: ic-on-sag
-  name: İç Ön Sağ
-  url: /app/goruntuler/İç ön sağ.mp4
-  enabled: false
-  mesafe: normal
-- id: ic-on-sag-2
-  name: İç Ön Sağ 2
-  url: /app/goruntuler/İç ön sağ 2.mp4
-  enabled: false
-  mesafe: normal
-- id: ic-on-sol
-  name: İç Ön Sol
-  url: /app/goruntuler/İç Ön Sol.mp4
-  enabled: false
-  mesafe: normal
-- id: ic-on-sol-2
-  name: İç Ön Sol 2
-  url: /app/goruntuler/İç ön sol 2.mp4
-  enabled: false
-  mesafe: normal
-- id: on-orta
-  name: Ön Orta
-  url: /app/goruntuler/On Orta.mp4
-  enabled: false
-  mesafe: normal
-- id: yeni-1
-  name: Yeni Kamera 1
-  url: /app/goruntuler/yeni_video.mp4
-  enabled: false
-  mesafe: normal
-- id: yeni-2
-  name: Yeni Kamera 2
+- id: kamera16
+  name: Yeni video 1
   url: /app/goruntuler/yeni_video1.mp4
-  enabled: false
+  enabled: true
   mesafe: normal
-- id: yeni-3
-  name: Yeni Kamera 3
+- id: kamera17
+  name: Yeni video 2
   url: /app/goruntuler/yeni_video2.mp4
-  enabled: false
+  enabled: true
   mesafe: normal
 detection:
+  # Tum kameralar icin SABIT deger (kamera basina farkli deger verilmiyor -
+  # bilerek boyle: tek, tutarli bir kural). 2'den 1'e dusuruldu: GPU yukunu
+  # yariya indirir, ama saniyede 1 kontrol hala kisa sureli gecisleri
+  # yakalayabilecek kadar sik (5 saniyede 1'e gore cok daha guvenli).
   target_fps: 1
   tracking_enabled: true
   auto_calibrate: true
@@ -110,6 +147,16 @@ detection:
   body_w_mult: 2.6
   body_h_mult: 6.0
   inference_lock: true
+  # ASAGIDAKI IKI AYAR "batch inference" icin - cok kamerali kurulumlarda
+  # gecikmeyi dusurur. batch_wait_ms: kameralarin biriken kareleri TEK GPU
+  # cagrisinda birlestirilmeden once beklenecek pencere (milisaniye). Cok
+  # dusuk olursa kameralar birbirini yakalayamaz (batching az olur), cok
+  # yuksek olursa gereksiz gecikme eklenir. batch_max_size: tek bir GPU
+  # cagrisinda en fazla kac karenin birlestirilecegi (VRAM'e gore ayarlanir -
+  # 12GB'lik kartlarda 8-16 arasi güvenli). 12 kameranin TAMAMI ayni anda
+  # aktifse (max_aktif_kamera: 0) hepsi tek pakette birlesebilsin diye 12
+  # yapildi - VRAM zorlanirsa (bkz. panel "Sistem" penceresi) 8'e geri
+  # cekilebilir, kod tarafinda baska hicbir sey degismez.
   batch_wait_ms: 25
   batch_max_size: 12
   head_zone_ratio: 0.55
@@ -134,6 +181,15 @@ detection:
   helmet_revoke_frames: 4
   log_helmet_revoke: true
   confirm_frames: 3
+  # ONEMLI: bu deger, bir "baretsiz" tespitinin IHLAL SAYILIP SAYILMAYACAGINI
+  # belirler (0.3 -> 0.45 yukseltildi). Bunun altindaki guven skoruna sahip
+  # tespitler artik HIC IHLAL OLARAK KAYDEDILMEZ - ne panelde "Inceleme
+  # Bekleyen"e duser ne de mail gider. Cok uzak/sisli/bulanik goruntude
+  # modelin dusuk guvenle ("%30" gibi) yanlislikla baretsiz sandigi durumlar
+  # icin eklendi. DIKKAT: gercekten uzak bir kamerada gercek bir ihlal de
+  # dusuk guvenle tespit edilebilir - bu esik cok yukseltilirse gercek
+  # ihlaller de kacabilir. Yanlis alarm hala cok geliyorsa biraz daha
+  # yukselt (orn. 0.5); gercek ihlaller kaciyor gibiyse biraz dusur.
   violation_min_conf: 0.45
   cooldown_seconds: 90
   state_ttl_seconds: 300
@@ -150,14 +206,51 @@ web:
   port: 8000
   live_view: true
   stream_quality: 70
+# IHLAL MAIL BILDIRIMI - yonetici istegi: ihlal tespit edildiginde mail
+# gitsin (kamera, tarih, saat, foto). VARSAYILAN KAPALI (enabled: false) -
+# once alttaki bilgileri doldurup deneyerek acmani oneririm, yoksa su anki
+# test videolarindaki YUZLERCE birikmis ihlal icin (min_seconds_between
+# kadar araliklarla) mail gitmeye baslar.
 email:
   enabled: true
   smtp_host: smtp.gmail.com
   smtp_port: 587
-  smtp_user: tespitsistemibaret@gmail.com
-  smtp_pass: pejz iuyh zxot uwyk
+  # Gonderen Gmail adresi. NOT: buraya normal Gmail sifreni DEGIL, Google
+  # hesabinda 2 adimli dogrulamayi actiktan sonra
+  # https://myaccount.google.com/apppasswords adresinden olusturacagin
+  # 16 haneli "uygulama sifresi"ni yazmalisin.
+  smtp_user: "tespitsistemibaret@gmail.com"
+  smtp_pass: "pejz iuyh zxot uwyk"
   to:
-  - hamdigurel50@gmail.com
+    - "hamdigurel50@gmail.com"   # ihlal mailinin gidecegi adres (yoneticinin maili)
+  # SPAM ONLEME KURALI: Bir kameradan mail gittikten sonra, ayni kameradan
+  # gelen YENI bir ihlal, "ayni kisi" sayilirsa (asagidaki
+  # same_person_similarity'ye bakan kiyafet/renk kiyaslamasi ile) bu kadar
+  # saniye gecmeden tekrar mail atilmaz. AMA gercekten FARKLI (renk
+  # olarak farkli gorunen) bir kisi ayni kamerada yakalanirsa, bu sureyi
+  # beklemeden HEMEN mail gider. 10 dakika = 600 saniye.
   min_seconds_between: 600
+  # "AYNI KISI Mİ" karari icin kullanilan renk-benzerlik esigi (0-1
+  # arasi, HSV histogram korelasyonu - ID Takip ozelligiyle ayni yontem).
+  # Yeni ihlalin kirpilmis fotografi, yakin zamanda mail gitmis birinin
+  # fotografiyla bu orandan FAZLA benzerse "ayni kisi" sayilir ve mail
+  # atlanir. DUSURURSEN (orn. 0.4): daha kolay "ayni kisi" sayilir -
+  # ayni kisiyi yururken daha iyi yakalar ama BENZER RENKTE kiyafet
+  # giyen iki farkli kisiyi de ayni sanma riski artar. ARTIRIRSAN (orn.
+  # 0.75): daha "farkli kisi" sayilmaya meyilli olur - farkli kisileri
+  # daha iyi ayirir ama ayni kisi isik/aci degisince "yeni kisi"
+  # sanilabilir (biraz daha sik mail gelebilir).
+  # NOT: Sahada herkes TAM AYNI RENK is kiyafeti giyiyorsa bu yontem
+  # sinirli kalir - agir bir yuz/kisi tanima modeli olmadan bunu tam
+  # cozmek zor, ama kiyafet rengi birazcik bile farkliysa dogru calisir.
   same_person_similarity: 0.6
+  # DUSUK GUVENLI (sinirda/riskli) tespitler icin mail GITMESIN diye ayri
+  # bir esik. Panelin kendi ihlal esigi (violation_min_conf, asagida) ile
+  # KARISTIRMA: o esigin altindaki hicbir sey zaten ihlal bile sayilmiyor.
+  # Bu esik SADECE MAIL icin - ihlal panelde "Inceleme Bekleyen"e YINE
+  # duser (hicbir kayit kaybolmaz), sadece guven skoru bunun altindaysa
+  # mail atlanir. Ornek: biri %30 guvenle yanlislikla baretsiz sanilirsa
+  # (asiri sisli/uzak goruntu gibi) mail GITMEZ ama panelde gorup elle
+  # kontrol edebilirsin. Daha az yanlis-alarm maili istersen yukselt (orn.
+  # 0.6), daha hicbir ihlali kacirmak istemiyorsan dusur (orn. 0.3).
   min_confidence: 0.5

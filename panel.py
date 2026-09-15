@@ -170,10 +170,19 @@ def index():
 
 
 def mjpeg(cam_id, quality=None, width=None, ham=False):
-    w = workers.get(cam_id)
+    """NOT: worker'i HER DONGUDE workers sozlugunden yeniden okur (bir kez
+    disariya alip 'while w:' ile sonsuza kadar donmek yerine). Eskiden bir
+    kamera silinip AYNI id ile yeniden eklendiginde, o kamerayi izlemekte
+    olan acik bir tarayici sekmesi eski (artik olu) worker nesnesinde
+    sonsuza kadar takili kaliyordu - hicbir hata gostermeden, sadece son
+    kareyi tekrar tekrar donduruyordu. Simdi kamera silinirse akis hemen
+    biter, yeniden eklenirse (ayni id) akis otomatik yeni goruntuye gecer."""
     q = quality or CFG["web"].get("stream_quality", 70)
     delay = 1 / max(1, CFG["detection"].get("target_fps", 3))
-    while w:
+    while True:
+        w = workers.get(cam_id)
+        if not w:
+            break
         j = w.get_jpeg(q, width, ham=ham)
         if j:
             yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + j + b"\r\n")

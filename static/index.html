@@ -56,7 +56,12 @@
 
   /* ---- orta satir: kameralar ---- */
   .orta{display:grid;grid-template-columns:150px 1fr;gap:8px;min-height:0}
+  .sol-sutun{display:flex;flex-direction:column;gap:6px;min-height:0}
+  .kamera-arama{flex-shrink:0;width:100%;background:var(--panel);color:var(--text);
+       border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:12px}
+  .kamera-arama:focus{outline:none;border-color:var(--blue)}
   #secici{display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:0}
+  .sec-sonuc-yok{color:var(--dim);font-size:11.5px;text-align:center;padding:14px 4px}
   .sec{background:var(--panel);border:1px solid var(--line);border-radius:8px;
        overflow:hidden;cursor:pointer;transition:border-color .15s;position:relative}
   .sec:hover{border-color:#3d4b59}
@@ -83,6 +88,13 @@
        display:flex;align-items:center;justify-content:center;
        background:var(--panel3);color:var(--text);border:1px solid var(--line);
        cursor:pointer;font-size:14px;padding:0}
+  .sec[draggable="true"]{cursor:grab}
+  .sec.surukleniyor{opacity:.35}
+  .sec.surukleme-hedefi{border-color:var(--blue)}
+  .pasif-baslik{padding:7px 8px;font-size:11px;color:var(--dim);cursor:pointer;
+       text-align:center;border:1px dashed var(--line);border-radius:6px;
+       user-select:none;transition:.15s}
+  .pasif-baslik:hover{color:var(--text);border-color:#3d4b59}
   .sec-duzenle:hover{background:var(--blue);border-color:var(--blue);color:#fff}
   .sec-guc{flex-shrink:0;width:23px;height:23px;border-radius:5px;
        display:flex;align-items:center;justify-content:center;
@@ -385,7 +397,12 @@
   </div>
 
   <div class="orta">
-    <div id="secici"></div>
+    <div class="sol-sutun">
+      <input id="kameraAramaKutusu" class="kamera-arama" type="text"
+             placeholder="🔍 Kamera ara..." autocomplete="off"
+             oninput="kameraAramaDegisti(this.value)">
+      <div id="secici"></div>
+    </div>
     <div class="kart">
       <div class="kart-b">
         <span class="dot" id="buyukDot"></span>
@@ -543,6 +560,14 @@
 
 <script>
 let kameralar = [], secili = null, sonIhlal = {};
+let gorunurSirali = [];   // sec() ve klavye kisayollari (1-9) bununla eslesir
+let pasifAcik = localStorage.getItem('pasifAcik')==='1';
+let suruklenenId = null;
+let kameraArama = '';
+function kameraAramaDegisti(v){
+  kameraArama = (v||'').toLocaleLowerCase('tr-TR').trim();
+  seciciCiz();
+}
 let aktifDurum = 'bekleyen';
 let liste = [], acikKayit = null, sonKarar = null, toastZaman = null;
 let gorulenIdler = new Set(), ilkYukleme = true;
@@ -566,11 +591,30 @@ function _gucBilgisi(c){
     aksiyon:`kameraAktifYap('${c.id}')`};
   return {cls:'durdur', title:'Durdur', aksiyon:`kameraDurdurBaslat('${c.id}', true)`};
 }
-function seciciCiz(){
-  document.getElementById('secici').innerHTML = kameralar.map((c,i)=>{
-    const g = _gucBilgisi(c);
-    return `
+/* ---- sol listedeki sira, tarayicida (localStorage) hatirlanir ----
+   Surukle-birak ile degistirilebilir - sadece bu tarayicida/bilgisayarda
+   gecerlidir, config.yaml'i degistirmez, sunucudan bagimsizdir. */
+function _kameraSirasiAl(){
+  try{ return JSON.parse(localStorage.getItem('kameraSirasi')||'[]'); }catch(e){ return []; }
+}
+function _kameraSirasiKaydet(sira){
+  try{ localStorage.setItem('kameraSirasi', JSON.stringify(sira)); }catch(e){}
+}
+function _sirala(dizi){
+  const sira = _kameraSirasiAl();
+  const idx = id => { const i = sira.indexOf(id); return i===-1 ? 99999 : i; };
+  return [...dizi].sort((a,b)=> idx(a.id)-idx(b.id));
+}
+function pasifAcKapat(){
+  pasifAcik = !pasifAcik;
+  localStorage.setItem('pasifAcik', pasifAcik ? '1' : '0');
+  seciciCiz();
+}
+function _kartCiz(c,i){
+  const g = _gucBilgisi(c);
+  return `
     <div class="sec ${c.id===secili?'aktif':''}" data-id="${c.id}"
+         draggable="${c.durduruldu?'false':'true'}"
          onclick="sec('${c.id}')" title="${c.name}">
       ${c.connected
         ? `<img src="/stream/${c.id}?genislik=260&kalite=55" alt="">`
@@ -578,7 +622,7 @@ function seciciCiz(){
       <div class="sec-alt">
         <span class="dot ${c.connected?'on':(c.durduruldu?'kapali':(c.sirada?'bekliyor':'off'))}"></span>
         <span class="sec-ad">${c.name}</span>
-        ${i<9?`<span class="tus">${i+1}</span>`:''}
+        ${(i!==null && i<9)?`<span class="tus">${i+1}</span>`:''}
         <button class="sec-guc ${g.cls}" title="${g.title}"
                 onclick="event.stopPropagation();${g.aksiyon}">
           ${g.cls==='durdur'?'&#9208;':'&#9654;'}
@@ -587,11 +631,57 @@ function seciciCiz(){
                 onclick="event.stopPropagation();kameraModalAc('${c.id}')">&#9998;</button>
       </div>
     </div>`;
-  }).join('') + `
-    <div class="sec-ekle" onclick="kameraModalAc()" title="Yeni kamera ekle">
+}
+function seciciCiz(){
+  const q = kameraArama;
+  const havuz = q ? kameralar.filter(c=> c.name.toLocaleLowerCase('tr-TR').includes(q)) : kameralar;
+  const gorunur = _sirala(havuz.filter(c=>!c.durduruldu));
+  const pasif = havuz.filter(c=>c.durduruldu);
+  gorunurSirali = gorunur;
+  let html =
+    gorunur.map((c,i)=>_kartCiz(c,i)).join('') +
+    (q ? '' : `<div class="sec-ekle" onclick="kameraModalAc()" title="Yeni kamera ekle">
       <span class="se-artı">＋</span><span>Kamera Ekle</span>
-    </div>`;
+    </div>`) +
+    (pasif.length ? `
+    <div class="pasif-baslik" onclick="pasifAcKapat()" title="Pasif/durdurulmus kameralari goster-gizle">
+      ${pasifAcik?'▾':'▸'} Pasif kameralar (${pasif.length})
+    </div>` + (pasifAcik ? pasif.map(c=>_kartCiz(c,null)).join('') : '') : '');
+  if(q && !gorunur.length && !pasif.length){
+    html = `<div class="sec-sonuc-yok">"${q}" ile eslesen kamera yok</div>`;
+  }
+  document.getElementById('secici').innerHTML = html;
+  _suruklemeKur();
   seciciGuncelle();
+}
+function _suruklemeKur(){
+  document.querySelectorAll('#secici .sec[draggable="true"]').forEach(el=>{
+    el.addEventListener('dragstart', ()=>{
+      suruklenenId = el.dataset.id;
+      el.classList.add('surukleniyor');
+    });
+    el.addEventListener('dragend', ()=> el.classList.remove('surukleniyor'));
+    el.addEventListener('dragover', e=>{
+      e.preventDefault();
+      el.classList.add('surukleme-hedefi');
+    });
+    el.addEventListener('dragleave', ()=> el.classList.remove('surukleme-hedefi'));
+    el.addEventListener('drop', e=>{
+      e.preventDefault();
+      el.classList.remove('surukleme-hedefi');
+      const hedefId = el.dataset.id;
+      if(!suruklenenId || suruklenenId===hedefId) return;
+      const sira = gorunurSirali.map(c=>c.id);
+      const kaynakIdx = sira.indexOf(suruklenenId);
+      const hedefIdx = sira.indexOf(hedefId);
+      if(kaynakIdx===-1||hedefIdx===-1) return;
+      sira.splice(kaynakIdx,1);
+      sira.splice(hedefIdx,0,suruklenenId);
+      _kameraSirasiKaydet(sira);
+      suruklenenId = null;
+      seciciCiz();
+    });
+  });
 }
 function seciciGuncelle(){
   const simdi = Date.now();
@@ -1289,7 +1379,7 @@ document.addEventListener('keydown',e=>{
   }
   if(e.key>='1' && e.key<='9' && !e.ctrlKey && !e.altKey){
     const i = parseInt(e.key,10)-1;
-    if(kameralar[i]) sec(kameralar[i].id);
+    if(gorunurSirali[i]) sec(gorunurSirali[i].id);
   }
 });
 
